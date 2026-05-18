@@ -155,9 +155,8 @@ const styles = StyleSheet.create(theme => ({
 
 ```tsx
 import { ChevronRight } from "lucide-react-native";
-import { View } from "react-native";
+import { I18nManager, View } from "react-native";
 import { useUnistyles, StyleSheet } from "react-native-unistyles";
-import { useDir } from "@/hooks/use-dir"; // local hook reading I18nManager.isRTL
 import { Text } from "@ui/text";
 
 interface ListRowProps {
@@ -167,10 +166,9 @@ interface ListRowProps {
 }
 
 export const ListRow = ({ icon, label }: ListRowProps) => {
-  const { isRtl } = useDir();
   const { theme } = useUnistyles();
   return (
-    <View style={styles.row(isRtl)}>
+    <View style={styles.row}>
       {icon}
       <Text variant="paragraphM" style={styles.label}>
         {label}
@@ -178,31 +176,35 @@ export const ListRow = ({ icon, label }: ListRowProps) => {
       <ChevronRight
         size={theme.spacing[5]}
         color={theme.text.muted}
-        style={{ transform: [{ scaleX: isRtl ? -1 : 1 }] }}
+        style={styles.chevron}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create(theme => ({
-  row: (isRtl: boolean) => ({
-    flexDirection: isRtl ? "row-reverse" : "row",
+  row: {
+    flexDirection: I18nManager.isRTL ? "row-reverse" : "row",
     alignItems: "center",
     gap: theme.spacing[3],
     paddingVertical: theme.spacing[3],
     paddingHorizontal: theme.spacing[4],
-  }),
+  },
   label: {
     flex: 1,
     color: theme.text.primary,
     textAlign: "left", // means "start" in native RTL — correct
+  },
+  chevron: {
+    transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }],
   },
 }));
 ```
 
 **Notes:**
 
-- `flexDirection` is the one layout property that's safest to branch on `isRtl` explicitly.
+- `I18nManager.isRTL` is static after app launch (RN restarts when language changes), so reading it at module scope inside `StyleSheet.create` is safe — no hook needed.
+- `flexDirection` is the one layout property that's safest to branch on `I18nManager.isRTL` explicitly.
 - `textAlign: "left"` actually means "start" in RN's native RTL mode, so it does the right thing.
 - Chevrons (and any directional icon) get `scaleX: -1` in RTL — they don't auto-flip.
 - `useUnistyles()` is used here because the icon's `color` and `size` are **props**, not style values.

@@ -4,7 +4,7 @@
 
 > Part of [`AlshehriAli0/agent-skills`](https://github.com/AlshehriAli0/agent-skills) — see the [root README](../../README.md) for the full skill index.
 
-An opinionated agent skill for [TanStack Query](https://tanstack.com/query) v5 (formerly React Query) in production React, React Native, and Next.js apps. It teaches Claude / Cursor / any agent the conventions used to ship a real codebase at scale: a strict per-feature folder split, `queryOptions()` key factories with a "Constants" prefix for broad invalidation, shared `QueryConfig` / `MutationConfig` type helpers, typed request functions (never inline `fetch`), and the cancel → snapshot → update → rollback → reconcile optimistic-update lifecycle.
+An opinionated agent skill for [TanStack Query](https://tanstack.com/query) (formerly React Query) in production React, React Native, and Next.js apps. It teaches Claude / Cursor / any agent the conventions used to ship a real codebase at scale: a strict per-feature folder split, `queryOptions()` key factories with a "Constants" prefix for broad invalidation, shared `QueryConfig` / `MutationConfig` type helpers, typed request functions (never inline `fetch`), and the cancel → snapshot → update → rollback → reconcile optimistic-update lifecycle.
 
 This skill is **layered on top of** the [TanStack Query Best Practices](https://www.skills.sh/deckardger/tanstack-agent-skills/tanstack-query-best-practices) skill by [@DeckardGer](https://github.com/DeckardGer) — 32 rules across 10 categories (query keys, caching, mutations, error handling, prefetching, infinite queries, SSR, parallel queries, performance, offline). The upstream rules are bundled under `references/upstream/` so this skill works offline.
 

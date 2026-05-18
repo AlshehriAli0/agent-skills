@@ -1,26 +1,21 @@
 ---
 name: tanstack-query-best-practices
 description: >
-  Production conventions for TanStack Query (React Query) v5 in real apps: per-feature
-  folder split (types / requests / keys / queries / mutations), `queryOptions()` key
-  factories with a "Constants" prefix for broad invalidation, shared `QueryConfig` /
-  `MutationConfig` type helpers, typed API functions (never inline `fetch`), optimistic
-  updates with rollback context, `meta.persist`, `staleTime` defaults, and `useQueries`
-  / `useInfiniteQuery` patterns. Triggers on: "tanstack query", "react-query", "useQuery",
-  "useMutation", "useInfiniteQuery", "queryOptions", "queryKey", "invalidateQueries",
-  "queryClient", "optimistic update", "queries.ts", "mutations.ts", "data fetching",
-  "server state", "set up react query", or any task that adds, refactors, or reviews
-  data-fetching hooks in a React / React Native / Next.js project — even when the
-  user doesn't name the library. Bundles the deep-dive deckardger TanStack Query
-  best-practices skill (32 rules across 10 categories) under `references/upstream/`.
-disable-model-invocation: false
-user-invocable: true
-allowed-tools: Read, Grep, Glob, Edit, Write, Bash
+  Production conventions for TanStack Query: five-file feature folder
+  (types/requests/keys/queries/mutations), `queryOptions()` factory keys with
+  a "Constants" prefix for broad invalidation, `QueryConfig`/`MutationConfig`
+  helpers, optimistic updates with rollback, and `useInfiniteQuery` patterns.
+  Triggers on tanstack query, react-query, useQuery, useMutation,
+  useInfiniteQuery, queryOptions, queryKey, invalidateQueries, queryClient,
+  optimistic updates, queries.ts, mutations.ts, server state, or any task
+  that adds, refactors, or reviews data-fetching hooks — even when the user
+  doesn't name the library.
+allowed-tools: Read, Grep, Glob, Edit, Write
 ---
 
 # TanStack Query — Production Conventions
 
-This skill captures the conventions for using **TanStack Query v5** (formerly React Query) in a real production codebase. It sits **on top of** the upstream rules-by-category skill written by [@DeckardGer](https://github.com/DeckardGer) — that skill covers the *what* and *why* of each individual rule (query keys, caching, mutations, error handling, prefetching, infinite queries, SSR, parallel queries, performance, offline). This skill covers the **how** of organizing all of that day-to-day in an app: where each piece lives, what the file looks like, how mutations talk to queries, what the defaults are.
+This skill captures the conventions for using **TanStack Query** (formerly React Query) in a real production codebase. It sits **on top of** the upstream rules-by-category skill written by [@DeckardGer](https://github.com/DeckardGer) — that skill covers the *what* and *why* of each individual rule (query keys, caching, mutations, error handling, prefetching, infinite queries, SSR, parallel queries, performance, offline). This skill covers the **how** of organizing all of that day-to-day in an app: where each piece lives, what the file looks like, how mutations talk to queries, what the defaults are.
 
 When working on tasks involving data fetching, server state, `useQuery`, `useMutation`, `queryClient`, or anything else in the TanStack Query surface area, apply these conventions by default. For anything not covered here (individual rule rationale, SSR edge cases, offline persistence config, retry tuning), read the upstream rules under `references/upstream/rules/*.md`.
 
@@ -65,16 +60,19 @@ import { queryOptions } from "@tanstack/react-query";
 import { fetchAccount, searchAccounts } from "./auth.requests";
 
 export const authQueries = {
+  // Constant prefix — `as const` lives ONLY here (see rule 3).
+  all: () => ["auth"] as const,
+
   account: () =>
     queryOptions({
-      queryKey: ["account"] as const,
+      queryKey: [...authQueries.all(), "account"],
       queryFn: fetchAccount,
       staleTime: 1000 * 60 * 15, // 15 min — account data is stable
     }),
 
   searchAccounts: (term: string, verifiedOnly?: boolean) =>
     queryOptions({
-      queryKey: ["accounts", "search", term, verifiedOnly] as const,
+      queryKey: [...authQueries.all(), "search", term, verifiedOnly],
       queryFn: () => searchAccounts(term, verifiedOnly),
       enabled: term.length > 0,
     }),
@@ -94,30 +92,30 @@ useQuery({ queryKey: ["account"], queryFn: fetchAccount });
 
 **How to apply:** Anywhere you'd write a literal `queryKey`, define it in the factory instead and spread the factory result. The hook file should never contain a `queryKey` line of its own.
 
-### 3. Use the "Constants" prefix pattern for broad invalidation across filter variants
+### 3. Use the "Constants" prefix pattern for broad invalidation — `as const` only on the prefix
 
 ```ts
 export const treeQueries = {
-  // The "Constants" — return *just the prefix* so you can invalidate every variant
-  treesList: () => ["trees"] as const,
-  infiniteTreesConstant: () => ["infiniteTrees"] as const,
-  treesCountConstant: () => ["treesCount"] as const,
+  // The Constant — return *just the prefix*. `as const` lives HERE and only here.
+  all: () => ["trees"] as const,
 
-  // The "Variants" — full keys that include filters/params
+  // The Variants — full keys spread the constant and add their own params.
+  // No `as const` on these: the readonly tuple is inherited from `all()` and
+  // queryOptions() infers the rest. Adding `as const` is redundant noise.
   trees: (filters?: string) =>
     queryOptions({
-      queryKey: [...treeQueries.treesList(), filters] as const,
+      queryKey: [...treeQueries.all(), "list", filters],
       queryFn: () => fetchTrees(filters),
     }),
   infiniteTrees: (filters?: string) =>
     infiniteQueryOptions({
-      queryKey: [...treeQueries.infiniteTreesConstant(), { filters, limit: 40 }] as const,
+      queryKey: [...treeQueries.all(), "infinite", { filters, limit: 40 }],
       queryFn: ({ pageParam }) => fetchInfiniteTrees(40, filters, pageParam),
       // ...
     }),
   treesCount: ({ filters }: { filters?: string } = {}) =>
     queryOptions({
-      queryKey: [...treeQueries.treesCountConstant(), filters] as const,
+      queryKey: [...treeQueries.all(), "count", filters],
       queryFn: () => fetchTreesCount({ filters }),
     }),
 };
@@ -126,13 +124,20 @@ export const treeQueries = {
 In a mutation, invalidate the whole family in one line:
 
 ```ts
-queryClient.invalidateQueries({ queryKey: treeQueries.infiniteTreesConstant() });
-// → invalidates every cached `["infiniteTrees", { filters: "...", limit: 40 }]` variant
+queryClient.invalidateQueries({ queryKey: treeQueries.all() });
+// → invalidates every cached `["trees", ...]` variant: list, infinite, count, everything
 ```
 
-**Why:** Real list endpoints have filter/sort/pagination args, which means you end up with N cached variants of the same logical list. After a write (delete/transfer/assign), you want to invalidate **all** of them. Passing a prefix array to `invalidateQueries` does exactly that. Without this pattern, you'd either (a) invalidate one variant and silently leave stale data in the others, or (b) call `invalidateQueries` with stringly-typed prefixes and lose type safety.
+Or invalidate one sub-tree:
 
-**How to apply:** For any feature with filtered/paginated lists, add a `<thing>Constant` (or `<thing>List`) function that returns the prefix array `as const`. Spread it into each variant's full key. Mutations invalidate using the prefix; queries that read a specific variant use the full factory call.
+```ts
+queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "infinite"] });
+// → only the infinite variants
+```
+
+**Why:** Real list endpoints have filter/sort/pagination args, so you end up with N cached variants of the same logical list. After a write (delete/transfer/assign), you want to invalidate **all** of them — passing a prefix array to `invalidateQueries` does exactly that. The `as const` on `all()` is what gives you the typed readonly tuple every variant inherits via spread; repeating `as const` on each variant adds nothing because `queryOptions()` already infers a precise key type from its argument. Keeping the assertion in exactly one place is the rule that makes the pattern self-evident — when you see `as const`, you know you're looking at a prefix.
+
+**How to apply:** For every feature folder, the key factory has an `all: () => [<feature>] as const` entry. Every other entry spreads `all()` and appends its own segments (`"list"`, `"detail"`, `"infinite"`, etc.) without `as const`. Mutations invalidate via `all()` or `[...all(), "subtree"]`; reads call the specific factory.
 
 ### 4. Type helpers: `QueryConfig` and `MutationConfig` — define once, reuse everywhere
 

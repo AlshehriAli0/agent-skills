@@ -107,21 +107,31 @@ borderCurve: "continuous",
 
 **How to apply:** Anytime you write `borderRadius`, add `borderCurve: "continuous"` on the next line. If a designer specifies sharp corners (radius 0), skip both.
 
-### 5. No `as const` inside `StyleSheet.create`
+### 5. No `as const` inside `StyleSheet.create` — the typed `create` already narrows for you
 
 ```ts
 // ✅
 const styles = StyleSheet.create(theme => ({
-  row: { flexDirection: "row", alignItems: "center" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "absolute",
+  },
 }));
 
-// ❌
+// ❌ noisy and redundant
 const styles = StyleSheet.create(theme => ({
-  row: { flexDirection: "row" as const, alignItems: "center" as const },
+  row: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    position: "absolute" as const,
+  },
 }));
 ```
 
-**Why:** Unistyles' types already narrow string literals correctly. `as const` is redundant noise that some linters flag.
+**Why:** `StyleSheet.create` is generic over RN's style shape, so `"row"` is already inferred against the `flexDirection` union — `as const` adds nothing and `@typescript-eslint/no-unnecessary-type-assertion` flags it.
+
+**How to apply:** Write bare literals. If TS *does* widen a value to `string`, it's a real signal — usually the wrong `StyleSheet` import (see rule 1) or an inline object outside `create()`. Fix that, don't paper over it.
 
 ### 6. Don't pass `theme` as a prop — children call `useUnistyles()` themselves
 
@@ -205,19 +215,19 @@ card: {
 
 **How to apply:** When you see legacy shadow props in code you're editing, migrate them. Use the design system's shadow tokens (`theme.shadows.md` etc. — see template) when available.
 
-### 11. RTL — branch on `isRtl`, don't hand-flip
+### 11. RTL — branch on `I18nManager.isRTL`, don't hand-flip
 
 ```ts
-const { isRtl } = useDir(); // project-local hook reading I18nManager.isRTL
+import { I18nManager } from "react-native";
 
 row: {
-  flexDirection: isRtl ? "row-reverse" : "row",
+  flexDirection: I18nManager.isRTL ? "row-reverse" : "row",
 },
 ```
 
-**Why:** RN's auto-RTL handles `start`/`end`, `left`/`right`, and `textAlign` correctly, but `flexDirection: "row"` does **not** auto-flip in many setups (depends on how RTL is configured at the native level). Branching is explicit and survives configuration changes.
+**Why:** RN's auto-RTL handles `start`/`end`, `left`/`right`, and `textAlign` correctly, but `flexDirection: "row"` does **not** auto-flip in many setups (depends on how RTL is configured at the native level). Branching is explicit and survives configuration changes. `I18nManager.isRTL` is static after app launch (the app restarts on language change), so it's safe to read directly in stylesheets without a hook.
 
-**How to apply:** For `flexDirection: "row"`, branch with `isRtl`. For `translateX` in Reanimated, manually negate (`translateX: isRtl ? -value : value`). Chevron icons need `transform: [{ scaleX: isRtl ? -1 : 1 }]`. Email/phone inputs stay LTR with `writingDirection: "ltr"` regardless.
+**How to apply:** For `flexDirection: "row"`, branch with `I18nManager.isRTL`. For `translateX` in Reanimated, manually negate (`translateX: I18nManager.isRTL ? -value : value`). Chevron icons need `transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }]`. Email/phone inputs stay LTR with `writingDirection: "ltr"` regardless.
 
 ### 12. Static helpers come from `StyleSheet`, not from manual wraps
 

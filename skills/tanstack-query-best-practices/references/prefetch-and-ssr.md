@@ -99,7 +99,7 @@ You can also prefetch per-component on the server (instead of in the route loade
 ## Critical SSR notes from upstream
 
 - **`staleTime` on server should be > 0** so the client doesn't immediately refetch the same data you just prefetched. (`ssr-stale-time-server`)
-- **Use `<HydrationBoundary>`, not the older `<Hydrate>` API** (renamed in v5). (`ssr-hydration-boundary`)
+- **Use `<HydrationBoundary>`** for hydrating the dehydrated client state on the client. (`ssr-hydration-boundary`)
 - **Stream-friendly hydration**: if your framework streams (Next.js App Router, TanStack Start), nested `HydrationBoundary` components hydrate as their HTML arrives. Works out of the box with the per-component prefetch pattern above.
 
 See `references/upstream/rules/ssr-*.md` for full details.

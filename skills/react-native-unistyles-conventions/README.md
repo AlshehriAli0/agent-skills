@@ -77,7 +77,7 @@ Any task involving React Native styling, theme work, `StyleSheet.create`, respon
 - `gap` between siblings, `padding` inside, never `margin` on children.
 - `borderRadius` always pairs with `borderCurve: "continuous"`.
 - Gradients via `experimental_backgroundImage`; shadows via `boxShadow`.
-- `flexDirection: "row"` branches on `isRtl`; chevrons get `scaleX: -1` in RTL.
+- `flexDirection: "row"` branches on `I18nManager.isRTL`; chevrons get `scaleX: -1` in RTL.
 - `useUnistyles()` only when you need theme outside the `style` prop.
 
 Read [`SKILL.md`](./SKILL.md) for the full set with rationale.
