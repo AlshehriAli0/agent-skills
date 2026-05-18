@@ -11,65 +11,15 @@ Opinionated [agent skills](https://agentskills.io) for Claude Code, Cursor, Code
 
 ## Install
 
-### Pick interactively
-
-Leave the skill off and the CLI prompts you to multi-select from the available skills:
-
 ```bash
+# Interactive — pick one or many
 npx skills add AlshehriAli0/agent-skills
-# → interactive prompt to pick one or many
+
+# Specific skill, globally
+npx skills add AlshehriAli0/agent-skills@<skill-name> -g
 ```
 
-Or list what's available without installing:
-
-```bash
-npx skills add AlshehriAli0/agent-skills --list
-```
-
-### Install a specific skill
-
-```bash
-npx skills add AlshehriAli0/agent-skills --skill <skill-name>
-```
-
-For example:
-
-```bash
-npx skills add AlshehriAli0/agent-skills --skill tanstack-query-best-practices
-npx skills add AlshehriAli0/agent-skills --skill react-native-unistyles-conventions
-```
-
-The CLI auto-detects your agent (Claude Code, Cursor, Codex, OpenCode, …) and links the skill into the right directory.
-
-### Common flags
-
-```bash
-# Globally (available across all projects)
-npx skills add AlshehriAli0/agent-skills --skill <name> -g
-
-# Target a specific agent
-npx skills add AlshehriAli0/agent-skills --skill <name> -a claude-code
-
-# Non-interactive (CI/CD friendly)
-npx skills add AlshehriAli0/agent-skills --skill <name> -g -a claude-code -y
-
-# Pull updates later
-npx skills update <name>
-```
-
-See the [skills CLI docs](https://github.com/vercel-labs/skills) for scopes, copy-vs-symlink, agent filters, and the full option list.
-
-### Manual install (no CLI)
-
-Sparse-checkout a single skill:
-
-```bash
-git clone --filter=blob:none --no-checkout https://github.com/AlshehriAli0/agent-skills /tmp/agent-skills
-cd /tmp/agent-skills && git sparse-checkout set skills/<skill-name> && git checkout
-cp -R /tmp/agent-skills/skills/<skill-name> ~/.claude/skills/
-```
-
-Swap `.claude` for `.cursor`, `.codex`, etc. for other agents. For project-local install, use `.claude/skills/` instead of `~/.claude/skills/`.
+The CLI auto-detects your agent (Claude Code, Cursor, Codex, OpenCode, …). See the [skills CLI docs](https://github.com/vercel-labs/skills) for all flags.
 
 ## Repository layout
 

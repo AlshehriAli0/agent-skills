@@ -20,43 +20,11 @@ This skill is **layered on top of** the [TanStack Query Best Practices](https://
 
 ## Install
 
-### Via [skills.sh](https://skills.sh) (recommended)
-
 ```bash
-npx skills add AlshehriAli0/agent-skills --skill tanstack-query-best-practices
+npx skills add AlshehriAli0/agent-skills@tanstack-query-best-practices -g
 ```
 
-The CLI auto-detects your agent (Claude Code, Cursor, Codex, OpenCode, …) and links the skill into the right directory.
-
-**Common variations:**
-
-```bash
-# Install globally (available across all projects)
-npx skills add AlshehriAli0/agent-skills --skill tanstack-query-best-practices -g
-
-# Target a specific agent
-npx skills add AlshehriAli0/agent-skills --skill tanstack-query-best-practices -a claude-code
-
-# Non-interactive (CI/CD friendly)
-npx skills add AlshehriAli0/agent-skills --skill tanstack-query-best-practices -g -a claude-code -y
-
-# Pull updates later
-npx skills update tanstack-query-best-practices
-```
-
-See the [skills CLI docs](https://github.com/vercel-labs/skills) for the full option list.
-
-### Manual install (no CLI)
-
-Sparse-checkout just this skill from the monorepo:
-
-```bash
-git clone --filter=blob:none --no-checkout https://github.com/AlshehriAli0/agent-skills /tmp/agent-skills
-cd /tmp/agent-skills && git sparse-checkout set skills/tanstack-query-best-practices && git checkout
-cp -R /tmp/agent-skills/skills/tanstack-query-best-practices ~/.claude/skills/
-```
-
-Swap `.claude` for `.cursor`, `.codex`, etc. for other agents. For project-local install, use `.claude/skills/` instead of `~/.claude/skills/`.
+`-g` installs globally. Drop it for project-local. See the [skills CLI docs](https://github.com/vercel-labs/skills) for all flags.
 
 ## What's inside
 
