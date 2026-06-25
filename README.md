@@ -9,6 +9,7 @@ Opinionated [agent skills](https://agentskills.io) for Claude Code, Cursor, Code
 | [`tanstack-query-best-practices`](./skills/tanstack-query-best-practices) | Production conventions for TanStack Query v5: per-feature folder split, `queryOptions()` key factories with a "Constants" prefix for broad invalidation, shared `QueryConfig` / `MutationConfig` type helpers, optimistic-update lifecycle. Bundles the rule-by-rule [`tanstack-query-best-practices`](https://github.com/DeckardGer/tanstack-agent-skills) skill by [@DeckardGer](https://github.com/DeckardGer). |
 | [`react-native-unistyles-conventions`](./skills/react-native-unistyles-conventions) | Production conventions for [react-native-unistyles](https://github.com/jpudysz/react-native-unistyles) v3: Tailwind-style theme scales, dynamic-function styling, gap-over-margin, RTL handling, `borderCurve` pairing, gradients via `experimental_backgroundImage`. Bundles the upstream v3 skill by [@jpudysz](https://github.com/jpudysz). |
 | [`implementing-legend-state`](./skills/implementing-legend-state) | Implement [Legend-State](https://legendapp.com/open-source/state/) v3 as the primary state layer in React / React Native: `useValue` over `observer`, function computeds, mutate-don't-clone, fine-grained `For`/`Show`/`Memo`, local persistence (MMKV/AsyncStorage/localStorage/IndexedDB), and remote sync (`synced`/`syncedCrud`/Supabase). Includes a deprecated-pattern auditor and migration guides from v2 / Zustand / Redux. |
+| [`expo-ui-full-reference`](./skills/expo-ui-full-reference) | Complete reference for [`@expo/ui`](https://docs.expo.dev/versions/latest/sdk/ui/) — real SwiftUI on iOS and Jetpack Compose on Android from React. The `Host` island mental model (no Yoga inside a Host), universal vs platform-specific vs drop-in layer decision tree, full SwiftUI/Compose modifier catalogs, copy-paste screen templates, and tooling to enumerate installed components and audit flexbox-on-Host mistakes. Keyed to SDK 56. |
 
 ## Install
 
@@ -38,12 +39,18 @@ The CLI auto-detects your agent (Claude Code, Cursor, Codex, OpenCode, …). See
     │   ├── SKILL.md
     │   ├── README.md
     │   └── references/                             # deep dives + bundled upstream
-    └── implementing-legend-state/
+    ├── implementing-legend-state/
+    │   ├── SKILL.md
+    │   ├── README.md
+    │   ├── references/                             # per-task deep dives
+    │   ├── assets/                                 # copy-paste templates
+    │   └── scripts/                                # deprecated-pattern auditor
+    └── expo-ui-full-reference/
         ├── SKILL.md
         ├── README.md
-        ├── references/                             # per-task deep dives
-        ├── assets/                                 # copy-paste templates
-        └── scripts/                                # deprecated-pattern auditor
+        ├── references/                             # per-layer deep dives + modifier catalogs
+        ├── assets/                                 # copy-paste screen templates
+        └── scripts/                                # list-components + flexbox/import auditor
 ```
 
 Each skill stands on its own — read its own README for skill-specific install commands, what it triggers on, and the conventions it teaches.
