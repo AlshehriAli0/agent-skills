@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 /**
- * audit-expo-ui.js — advisory linter for @expo/ui usage. Pure Node (fs/path), no deps,
+ * audit-expo-ui.js: advisory linter for @expo/ui usage. Pure Node (fs/path), no deps,
  * no network. Output goes to stdout for an agent to read. Exit 1 if findings, else 0.
  *
  * Usage:
  *   node audit-expo-ui.js <file-or-dir> [more paths...]
  *
- * Checks (conservative — designed for near-zero false positives):
+ * Checks (conservative, designed for near-zero false positives):
  *   [FLEXBOX] A Yoga/flexbox `style={{...}}` on an @expo/ui component other than Host.
  *             Inside a Host, layout is native (Row/Column/HStack + spacing/modifiers);
  *             flexbox applies to the Host only, so flex/justifyContent/etc. on a child
  *             is a no-op or a bug.
  *   [UNIVERSAL] An import from '@expo/ui/swift-ui' or '@expo/ui/jetpack-compose' whose
- *             name also exists in the universal layer — prefer importing it from '@expo/ui'
+ *             name also exists in the universal layer: prefer importing it from '@expo/ui'
  *             (one tree, no .ios/.android split) unless you need platform-specific behavior.
+ *             Skipped in *.ios.* / *.android.* files, which have already chosen the split.
  *   [HOST-IMPORT] Host imported from a platform sub-package; it must come from '@expo/ui'.
  */
 'use strict';
@@ -46,12 +47,15 @@ const add = (file, line, rule, message) => findings.push({ file, line, rule, mes
 const lineAt = (src, idx) => src.slice(0, idx).split('\n').length;
 
 // ---------------------------------------------------------------------------
-// Import parsing — collect @expo/ui component imports (named + default) per file.
+// Import parsing: collect @expo/ui component imports (named + default) per file.
 // Sources ending in /modifiers are skipped (those are functions, not components).
 // ---------------------------------------------------------------------------
 function parseImports(src, file) {
   const importRe = /import\s+([^;]*?)\s+from\s+['"]([^'"]+)['"]/g;
   const componentNames = new Set();
+  // A .ios.tsx/.android.tsx file has already committed to the platform split, so the
+  // UNIVERSAL "prefer universal" nudge is noise there; HOST-IMPORT and FLEXBOX still apply.
+  const platformScoped = /\.(ios|android)\.[jt]sx?$/.test(file);
   let m;
   while ((m = importRe.exec(src))) {
     const clause = m[1];
@@ -77,9 +81,9 @@ function parseImports(src, file) {
       if (PLATFORM_SOURCES.has(source)) {
         const line = lineAt(src, m.index);
         if (name === 'Host') {
-          add(file, line, 'HOST-IMPORT', `Host imported from '${source}' — import Host from '@expo/ui' instead.`);
-        } else if (UNIVERSAL.has(name)) {
-          add(file, line, 'UNIVERSAL', `'${name}' from '${source}' has a universal equivalent — prefer import from '@expo/ui' unless you need platform-specific behavior.`);
+          add(file, line, 'HOST-IMPORT', `Host imported from '${source}': import Host from '@expo/ui' instead.`);
+        } else if (!platformScoped && UNIVERSAL.has(name)) {
+          add(file, line, 'UNIVERSAL', `'${name}' from '${source}' has a universal equivalent: prefer import from '@expo/ui' unless you need platform-specific behavior.`);
         }
       }
     }
@@ -88,7 +92,7 @@ function parseImports(src, file) {
 }
 
 // ---------------------------------------------------------------------------
-// JSX opening-tag scanner — brace/paren/bracket/string aware so arrow-function
+// JSX opening-tag scanner: brace/paren/bracket/string aware so arrow-function
 // props (onPress={() => ...}) don't prematurely end a tag at their `>`.
 // Returns [{ name, attrText, index }].
 // ---------------------------------------------------------------------------
@@ -151,7 +155,7 @@ function checkFlexbox(src, file, componentNames) {
     const hit = [...FLEX_KEYS].filter((k) => new RegExp(`(^|[{,\\s])${k}\\s*:`).test(styleObj));
     if (hit.length) {
       add(file, lineAt(src, tag.index), 'FLEXBOX',
-        `<${tag.name}> has flexbox style (${hit.join(', ')}). Flexbox applies to Host only — lay out children with Row/Column/HStack + spacing or modifiers.`);
+        `<${tag.name}> has flexbox style (${hit.join(', ')}). Flexbox applies to Host only: lay out children with Row/Column/HStack + spacing or modifiers.`);
     }
   }
 }

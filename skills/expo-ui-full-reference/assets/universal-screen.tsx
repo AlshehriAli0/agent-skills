@@ -1,8 +1,8 @@
-// Universal @expo/ui screen (SDK 56+). Drop in at e.g. app/settings.tsx — runs on iOS,
+// Universal @expo/ui screen (SDK 56+). Drop in at e.g. app/settings.tsx; runs on iOS,
 // Android, and web from this one file. Everything, including Host, imports from '@expo/ui'.
-// Layout is Row/Column + spacing/alignment — never RN flexbox style on the children.
+// Layout is Row/Column + spacing/alignment, never RN flexbox style on the children.
 import { useState } from 'react';
-import { Host, ScrollView, Column, Row, Text, Switch, Slider, Button, Picker } from '@expo/ui';
+import { Host, ScrollView, Column, Row, Spacer, Text, Switch, Slider, Button, Picker } from '@expo/ui';
 
 const THEMES = ['System', 'Light', 'Dark'];
 
@@ -43,7 +43,6 @@ export default function SettingsScreen() {
   );
 }
 
-// NOTE: Picker prop names vary by SDK/layer (some versions: options/selectedIndex/
-// onOptionSelected; others: selection/onSelectionChange). Confirm against the installed
-// node_modules/@expo/ui/build/universal/Picker/index.d.ts before shipping. `Spacer` is
-// imported from '@expo/ui' too — add it to the import line above.
+// NOTE: Picker prop names vary by SDK/layer (some versions use options/selectedIndex/
+// onOptionSelected, others selection/onSelectionChange). Confirm against the installed
+// node_modules/@expo/ui/build/universal/Picker/index.d.ts before shipping.
