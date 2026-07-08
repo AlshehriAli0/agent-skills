@@ -15,19 +15,21 @@ import {
 } from "./auth.requests";
 
 export const authQueries = {
+  // 0. The root — spread into every query below. Invalidate it to clear the feature.
+  all: () => ["auth"] as const,
+
   // 1. Single-entity, no params
   account: () =>
     queryOptions({
-      queryKey: ["account"] as const,
+      queryKey: [...authQueries.all(), "account"],
       queryFn: fetchAccount,
-      staleTime: 1000 * 60 * 15,
-      meta: { persist: true } as const,
+      meta: { persist: true },
     }),
 
   // 2. Single-entity, optional id
   minimalAccount: (accountId?: number) =>
     queryOptions({
-      queryKey: ["account", "minimal", accountId] as const,
+      queryKey: [...authQueries.all(), "minimal", accountId],
       queryFn: () => fetchAccountMinimalInfo(accountId),
       enabled: !!accountId,
     }),
@@ -35,7 +37,7 @@ export const authQueries = {
   // 3. Search/filter — every variant becomes its own cache entry
   searchAccounts: (term: string, verifiedOnly?: boolean) =>
     queryOptions({
-      queryKey: ["accounts", "search", term, verifiedOnly] as const,
+      queryKey: [...authQueries.all(), "search", term, verifiedOnly],
       queryFn: () => searchAccounts(term, verifiedOnly),
       enabled: term.length > 0,
     }),
@@ -43,7 +45,7 @@ export const authQueries = {
   // 4. Lookup by alternate id
   accountCard: (encryptedPhone: string) =>
     queryOptions({
-      queryKey: ["accountCard", encryptedPhone] as const,
+      queryKey: [...authQueries.all(), "card", encryptedPhone],
       queryFn: () => fetchAccountCard(encryptedPhone),
       enabled: !!encryptedPhone,
     }),
@@ -66,56 +68,53 @@ Keys are designed to be **prefix-invalidatable**. The shape that makes that work
 
 A prefix-only `invalidateQueries({ queryKey: ["posts"] })` then matches every post-related query. A more targeted `invalidateQueries({ queryKey: ["posts", postId] })` matches one post and its subresources but leaves lists alone.
 
-## The "Constants" pattern — prefix functions for broad invalidation
+## The `all()` root — one prefix for the whole feature
 
 Lists with filters generate many cache entries:
 
 ```
-["trees", { filters: "scope=mine&order=newest" }]
-["trees", { filters: "scope=all&order=oldest"  }]
-["trees", { filters: ""                          }]
+["trees", "list", "scope=mine&order=newest"]
+["trees", "list", "scope=all&order=oldest" ]
+["trees", "list", ""                         ]
 ```
 
-After a write, you usually want to invalidate **all** of them. Define a prefix function:
+Because every key spreads a single `all()` root, you can invalidate at any depth after a write:
 
 ```ts
 export const treeQueries = {
-  treesList: () => ["trees"] as const,                    // ← the prefix
-  infiniteTreesConstant: () => ["infiniteTrees"] as const,
-  treesCountConstant: () => ["treesCount"] as const,
+  all: () => ["trees"] as const,   // ← the root; `as const` lives here
+
+  tree: (id: string) =>
+    queryOptions({
+      queryKey: [...treeQueries.all(), "detail", id],
+      queryFn: () => fetchTree(id),
+    }),
 
   trees: (filters?: string) =>
     queryOptions({
-      queryKey: [...treeQueries.treesList(), filters] as const,
+      queryKey: [...treeQueries.all(), "list", filters],
       queryFn: () => fetchTrees(filters),
     }),
 
   infiniteTrees: (filters?: string) =>
     infiniteQueryOptions({
-      queryKey: [...treeQueries.infiniteTreesConstant(), { filters, limit: 40 }] as const,
+      queryKey: [...treeQueries.all(), "infinite", { filters, limit: 40 }],
       queryFn: ({ pageParam }) => fetchInfiniteTrees(40, filters, pageParam),
       initialPageParam: null,
       getNextPageParam: (last) => (last.length < 40 ? undefined : last[last.length - 1].id),
-      gcTime: 0,
-    }),
-
-  treesCount: ({ filters }: { filters?: string } = {}) =>
-    queryOptions({
-      queryKey: [...treeQueries.treesCountConstant(), filters] as const,
-      queryFn: () => fetchTreesCount({ filters }),
     }),
 };
 ```
 
-In a mutation, the broad invalidate is one line:
+Invalidate at whatever depth the write touched:
 
 ```ts
-queryClient.invalidateQueries({ queryKey: treeQueries.treesList() });
-queryClient.invalidateQueries({ queryKey: treeQueries.infiniteTreesConstant() });
-queryClient.invalidateQueries({ queryKey: treeQueries.treesCountConstant() });
+queryClient.invalidateQueries({ queryKey: treeQueries.all() });                  // whole feature
+queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "list"] });     // just the lists
+queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "infinite"] }); // just the feed
 ```
 
-**Naming**: the prefix function ends in `Constant` (or `List` for "the list of") and returns the bare array `as const`. The full key spreads it.
+**Naming & `as const`**: the root is always `all: () => ["<feature>"] as const`. `as const` lives on the root only — variant keys spread it and stay plain (the spread widens them to `string[]` regardless, and caching/invalidation never needed the tuple).
 
 ## Serializable everything
 
@@ -158,7 +157,7 @@ fetchPost: (id: string, lang: string) =>
 
 ```ts
 const opts = authQueries.account();
-opts.queryKey;   // readonly ["account"]
+opts.queryKey;   // string[]  (precise-tuple typing isn't needed — see rule 3)
 opts.queryFn;    // () => Promise<AccountProfile>
 ```
 
@@ -174,7 +173,7 @@ Two patterns work; pick one per project and stick with it:
 // gift.mutations.ts
 import { treeQueries } from "../tree";
 // ...
-onSuccess: () => queryClient.invalidateQueries({ queryKey: treeQueries.treesList() }),
+onSuccess: () => queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "list"] }),
 ```
 
 **B. Cross-feature "summary" key file**. For genuinely shared concepts (e.g. a dashboard that aggregates many features), make a `dashboard/dashboard.keys.ts` that owns those keys. Don't redefine.

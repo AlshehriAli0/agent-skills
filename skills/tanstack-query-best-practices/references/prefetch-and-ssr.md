@@ -53,14 +53,17 @@ export const Route = createFileRoute("/posts/$postId")({
 
 Almost always: **`prefetchQuery` for user intent, `ensureQueryData` for route loaders.** Reach for `fetchQuery` only when you specifically need the throw-on-error behavior.
 
-## Why prefetch needs `staleTime`
+## Prefetch and `staleTime`
 
 ```ts
-// Best practice: same staleTime as the eventual useQuery
+// The factory carries only key + queryFn, so a bare prefetch uses the client's default staleTime:
 qc.prefetchQuery(postQueries.post(id));
+
+// If a hook overrides staleTime, pass the same value here so the prefetch isn't treated as stale:
+qc.prefetchQuery({ ...postQueries.post(id), staleTime: 1000 * 60 * 5 });
 ```
 
-`postQueries.post(id)` carries its own `staleTime` (defined in the factory). Prefetched data immediately enters the cache with that `staleTime`. If you prefetch with no `staleTime` and use a `staleTime` later, the prefetched data is already considered "fresh" only until the next render, and you might refetch anyway. Defining `staleTime` in the factory makes both sides agree by construction.
+`staleTime` lives in the hook (or the QueryClient default), not the factory — so a bare `prefetchQuery(factory())` enters the cache with the **default** `staleTime`. That's fine when the hook uses the default too. When a hook sets its own `staleTime`, pass the same value to `prefetchQuery`, or the prefetched data is treated as fresh only until the next render and refetches anyway.
 
 ## SSR — dehydrate / hydrate
 

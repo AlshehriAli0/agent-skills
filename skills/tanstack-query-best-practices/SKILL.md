@@ -1,15 +1,13 @@
 ---
 name: tanstack-query-best-practices
 description: >
-  Production conventions for TanStack Query: five-file feature folder
-  (types/requests/keys/queries/mutations), `queryOptions()` factory keys with
-  a "Constants" prefix for broad invalidation, `QueryConfig`/`MutationConfig`
-  helpers, optimistic updates with rollback, and `useInfiniteQuery` patterns.
-  Triggers on tanstack query, react-query, useQuery, useMutation,
-  useInfiniteQuery, queryOptions, queryKey, invalidateQueries, queryClient,
-  optimistic updates, queries.ts, mutations.ts, server state, or any task
-  that adds, refactors, or reviews data-fetching hooks — even when the user
-  doesn't name the library.
+  Production conventions for TanStack Query (React Query): a five-file feature
+  folder (types/requests/keys/queries/mutations), queryOptions() key factories
+  with a single all() root per feature for hierarchical invalidation, QueryConfig/MutationConfig
+  type helpers, optimistic updates with rollback, and useInfiniteQuery patterns.
+  Use when adding, refactoring, or reviewing server-state or data-fetching code —
+  useQuery, useMutation, useInfiniteQuery, queryClient, .queries.ts/.mutations.ts
+  files — even when the user doesn't name the library.
 allowed-tools: Read, Grep, Glob, Edit, Write
 ---
 
@@ -55,19 +53,18 @@ src/api/<feature>/
 ### 2. Every key goes through a `queryOptions()` factory — never a literal at the call site
 
 ```ts
-// ✅ <feature>.keys.ts
+// ✅ <feature>.keys.ts — one `all()` root, spread into every query
 import { queryOptions } from "@tanstack/react-query";
 import { fetchAccount, searchAccounts } from "./auth.requests";
 
 export const authQueries = {
-  // Constant prefix — `as const` lives ONLY here (see rule 3).
+  // The root — every query below spreads it. `as const` lives here, on the root.
   all: () => ["auth"] as const,
 
   account: () =>
     queryOptions({
       queryKey: [...authQueries.all(), "account"],
       queryFn: fetchAccount,
-      staleTime: 1000 * 60 * 15, // 15 min — account data is stable
     }),
 
   searchAccounts: (term: string, verifiedOnly?: boolean) =>
@@ -80,28 +77,33 @@ export const authQueries = {
 ```
 
 ```ts
-// ✅ <feature>.queries.ts — spread the factory into useQuery
+// ✅ <feature>.queries.ts — spread the factory; extra props live in the hook, not the factory
 export const useAccount = ({ queryConfig = {} }: UseAccountOptions = {}) =>
-  useQuery({ ...authQueries.account(), ...queryConfig });
+  useQuery({ ...authQueries.account(), staleTime: 1000 * 60 * 15, ...queryConfig });
 
 // ❌ never inline a key — even "just this one time"
 useQuery({ queryKey: ["account"], queryFn: fetchAccount });
 ```
 
-**Why:** `queryOptions()` makes the definition reusable everywhere TanStack accepts options — `useQuery`, `useSuspenseQuery`, `prefetchQuery`, `ensureQueryData`, `getQueryData`, `setQueryData`. Stringly-typed keys at the call site fragment the cache: one typo (`["accounts"]` vs `["account"]`) and you have two queries instead of one. The factory also gives you exact types: `authQueries.account().queryKey` is typed as `readonly ["account"]`, not `QueryKey`. Anything that takes a `queryKey` or `queryOptions` (invalidate, setQueryData, prefetchQuery) gets typed inputs for free.
+**Why:** `queryOptions()` makes the definition reusable everywhere TanStack accepts options — `useQuery`, `useSuspenseQuery`, `prefetchQuery`, `ensureQueryData`, `getQueryData`, `setQueryData`. Stringly-typed keys at the call site fragment the cache: one typo (`["accounts"]` vs `["account"]`) and you have two queries instead of one. Define each key once in the factory and every consumer — hook, `invalidate`, `prefetch`, `setQueryData` — references the same one, with `data`/`variables` types flowing from the request function for free.
 
-**How to apply:** Anywhere you'd write a literal `queryKey`, define it in the factory instead and spread the factory result. The hook file should never contain a `queryKey` line of its own.
+**How to apply:** Anywhere you'd write a literal `queryKey`, define it in the factory and spread the result — the hook never writes its own `queryKey`. Keep each factory entry to **four props: `queryKey`, `queryFn`, `meta`, `enabled`** (infinite queries also need the structural `initialPageParam` + `getNextPageParam`); every other option — `staleTime`, `gcTime`, `placeholderData`, `select` — and any logic lives in the hook body (rule 6). Keys stay plain — `as const` lives only on `all()` (rule 3).
 
-### 3. Use the "Constants" prefix pattern for broad invalidation — `as const` only on the prefix
+### 3. One `all()` root per feature — spread it into every key, invalidate through it
+
+Every query in a feature spreads a single `all()` root, so all its keys share one prefix. That gives you a hierarchy you can invalidate at any depth — the whole feature in one call, or just one sub-tree:
 
 ```ts
 export const treeQueries = {
-  // The Constant — return *just the prefix*. `as const` lives HERE and only here.
+  // The root — `as const` lives here and only here.
   all: () => ["trees"] as const,
 
-  // The Variants — full keys spread the constant and add their own params.
-  // No `as const` on these: the readonly tuple is inherited from `all()` and
-  // queryOptions() infers the rest. Adding `as const` is redundant noise.
+  // Every query spreads all() + a discriminator + its own params. Keys stay plain.
+  tree: (id: string) =>
+    queryOptions({
+      queryKey: [...treeQueries.all(), "detail", id],
+      queryFn: () => fetchTree(id),
+    }),
   trees: (filters?: string) =>
     queryOptions({
       queryKey: [...treeQueries.all(), "list", filters],
@@ -113,31 +115,22 @@ export const treeQueries = {
       queryFn: ({ pageParam }) => fetchInfiniteTrees(40, filters, pageParam),
       // ...
     }),
-  treesCount: ({ filters }: { filters?: string } = {}) =>
-    queryOptions({
-      queryKey: [...treeQueries.all(), "count", filters],
-      queryFn: () => fetchTreesCount({ filters }),
-    }),
 };
 ```
 
-In a mutation, invalidate the whole family in one line:
+Invalidate at whatever depth the write touched:
 
 ```ts
 queryClient.invalidateQueries({ queryKey: treeQueries.all() });
-// → invalidates every cached `["trees", ...]` variant: list, infinite, count, everything
+// → nukes everything under ["trees", ...]: detail, list, infinite — all of it
+
+queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "list"] });
+// → just the list variants (every filter), leaving details alone
 ```
 
-Or invalidate one sub-tree:
+**Why:** A feature has several key families — detail, list, infinite, count — and lists fan out into N cached variants (one per filter/sort/page). Sharing one `all()` root makes every family prefix-matchable from a single place: `all()` clears the whole feature after a broad change, `[...all(), "list"]` clears just the lists, and because the root is defined once and spread, the keys can't drift apart. `as const` on `all()` gives the root a stable tuple type; variant keys stay plain — `as const` isn't required for caching or invalidation there, and wouldn't propagate through the spread anyway.
 
-```ts
-queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "infinite"] });
-// → only the infinite variants
-```
-
-**Why:** Real list endpoints have filter/sort/pagination args, so you end up with N cached variants of the same logical list. After a write (delete/transfer/assign), you want to invalidate **all** of them — passing a prefix array to `invalidateQueries` does exactly that. The `as const` on `all()` is what gives you the typed readonly tuple every variant inherits via spread; repeating `as const` on each variant adds nothing because `queryOptions()` already infers a precise key type from its argument. Keeping the assertion in exactly one place is the rule that makes the pattern self-evident — when you see `as const`, you know you're looking at a prefix.
-
-**How to apply:** For every feature folder, the key factory has an `all: () => [<feature>] as const` entry. Every other entry spreads `all()` and appends its own segments (`"list"`, `"detail"`, `"infinite"`, etc.) without `as const`. Mutations invalidate via `all()` or `[...all(), "subtree"]`; reads call the specific factory.
+**How to apply:** Every feature factory opens with `all: () => ["<feature>"] as const`. Every query spreads it and adds a discriminator (`"detail"`, `"list"`, `"infinite"`, `"search"`, …) plus its params. Mutations invalidate at the shallowest scope that covers what changed — `all()` for a broad write, `[...all(), "<scope>"]` for a targeted one.
 
 ### 4. Type helpers: `QueryConfig` and `MutationConfig` — define once, reuse everywhere
 
@@ -220,7 +213,7 @@ useQuery({
 
 **Why:** Inline calls bypass your axios/fetch wrapper, which is where base URLs, auth headers, error normalization, response unwrapping, retry, and logging live. They also mean the return type is `any` unless you remember to annotate every call site. A typed `requests.ts` function is grep-able, reusable across queries/mutations/prefetch, and has one source of truth for the network contract.
 
-**How to apply:** Whenever you reach for `fetch`/`axios` inside a `queryFn` or `mutationFn`, stop and add a function in `<feature>.requests.ts` instead. Hooks should look declarative; they should not contain `await fetch(...)`.
+**How to apply:** Whenever you reach for `fetch`/`axios` inside a `queryFn` or `mutationFn`, stop and add a function in `<feature>.requests.ts` instead. Hooks should look declarative; they should not contain `await fetch(...)`. Keep `queryFn` a one-line call to that function — no store writes or derived side-effects inside it (they'd run on every fetch, prefetch and SSR included); put those in the hook (a `useEffect` on `data`, or a mutation's `onSuccess`).
 
 ### 6. Hooks export named `useX`, accept an options object, never positional args for query config
 
@@ -300,9 +293,13 @@ useMutation({
   },
 
   onSuccess: (server, { publicId }) => {
-    // Reconcile with the server's authoritative shape
+    // Reconcile the item with the server's authoritative shape
     queryClient.setQueryData(treeQueries.tree(publicId).queryKey, server);
-    queryClient.invalidateQueries({ queryKey: treeQueries.treesList() }); // refresh lists
+  },
+
+  onSettled: () => {
+    // Refresh affected lists whether the write succeeded or failed
+    queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "list"] });
   },
 
   mutationFn: updateTreeInfo,
@@ -311,18 +308,18 @@ useMutation({
 
 **Why:** Without `cancelQueries`, an in-flight refetch can land after your optimistic write and overwrite it. Without a snapshot, you can't roll back on error. Without `onSuccess` reconciliation, the optimistic data sits in the cache even if the server returned something different (server-side timestamps, computed fields, normalized strings). Skipping any of the three steps produces UI that "looks right until you refresh" — a classic source of trust-eroding bugs.
 
-**How to apply:** Reach for optimistic updates when the result is predictable (toggle, rename, reorder, like/unlike). Skip them when the server's response shape is hard to predict (server-generated IDs that the next view needs, validation that may transform input) — `onSuccess` invalidation is simpler and still feels instant on a fast network.
+**How to apply:** Reach for optimistic updates when the result is predictable (toggle, rename, reorder, like/unlike). Skip them when the server's response shape is hard to predict (server-generated IDs that the next view needs, validation that may transform input) — `onSuccess` invalidation is simpler and still feels instant on a fast network. See `references/mutations-and-invalidation.md` for `invalidateQueries` vs `setQueryData`, patching cached lists and infinite queries, cross-feature invalidation, and `useMutationState`.
 
 ### 9. Invalidate via the key factory — never with a stringly-typed prefix
 
 ```ts
 // ✅
 queryClient.invalidateQueries({ queryKey: authQueries.account().queryKey });
-queryClient.invalidateQueries({ queryKey: treeQueries.infiniteTreesConstant() });
+queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "infinite"] });
 
 // ❌
-queryClient.invalidateQueries({ queryKey: ["account"] });
-queryClient.invalidateQueries({ queryKey: ["infiniteTrees"] });
+queryClient.invalidateQueries({ queryKey: ["auth", "account"] });
+queryClient.invalidateQueries({ queryKey: ["trees", "infinite"] });
 ```
 
 **Why:** Stringly-typed prefixes break silently. Rename the feature, change a key shape, change an arg's serialization — the literal in the mutation file stays valid TypeScript and silently invalidates nothing. The factory call goes through the type system, so a rename refactor flags every call site.
@@ -349,32 +346,34 @@ export const queryClient = new QueryClient({
 });
 ```
 
-Per-query overrides for the exceptions:
+Per-query overrides for the exceptions — in the **hook**, not the factory:
 
 ```ts
-// Stable reference data — invalidated only via mutations
-species: () => queryOptions({ queryKey: ["species"], queryFn: fetchSpecies,
-  staleTime: 1000 * 60 * 60, meta: { persist: true } as const }),
+// Stable reference data — long staleTime set in the hook (meta.persist stays in the factory)
+export const useSpecies = () =>
+  useQuery({ ...speciesQueries.list(), staleTime: 1000 * 60 * 60 });
 
 // Filter/pagination results — don't survive unmount
-mapTrees: (params) => queryOptions({ queryKey: [...], queryFn: ..., gcTime: 0 }),
+export const useMapTrees = (params: MapParams) =>
+  useQuery({ ...treeQueries.map(params), gcTime: 0 });
 
-// Real-time-ish data
-liveCount: () => queryOptions({ queryKey: ["liveCount"], queryFn: ..., staleTime: 0 }),
+// Real-time-ish data — always refetch on mount
+export const useLiveCount = () =>
+  useQuery({ ...statsQueries.liveCount(), staleTime: 0 });
 ```
 
 **Why:** App-wide defaults shape behavior for the 80% case; per-query overrides handle the long tail. With `staleTime: 0` (the library default), every mount refetches — bad UX, wasted network. With `staleTime: Infinity`, data never updates without an explicit invalidate — also bad. A minute or so is the sweet spot for most apps, with longer values for true reference data and `0` for queries that should always refetch on mount.
 
-**How to apply:** Set defaults once at the client. Set per-query `staleTime` only when the volatility is meaningfully different from the default — and document why with a one-line comment if it's not obvious.
+**How to apply:** Set defaults once at the client. Override `staleTime`/`gcTime` per-query in the **hook** (not the factory) only when the volatility differs meaningfully from the default — with a one-line comment if it's not obvious.
 
-### 11. `meta: { persist: true } as const` for queries that should survive cold start
+### 11. `meta: { persist: true }` for queries that should survive cold start
 
 ```ts
 species: () =>
   queryOptions({
     queryKey: ["species"],
     queryFn: fetchSpecies,
-    meta: { persist: true } as const,
+    meta: { persist: true },
   }),
 ```
 
@@ -392,9 +391,9 @@ persistQueryClient({
 });
 ```
 
-**Why:** Persisting *everything* fills storage with transient data (search results, paginated views, ephemeral filters). Persisting *nothing* gives you a blank app for two seconds on every cold start. Opting in per-query via `meta.persist` keeps reference/profile/list-of-things data warm and leaves the noisy stuff out. `as const` narrows the literal so TS won't widen `meta` to `Record<string, unknown>` and lose the boolean.
+**Why:** Persisting *everything* fills storage with transient data (search results, paginated views, ephemeral filters). Persisting *nothing* gives you a blank app for two seconds on every cold start. Opting in per-query via `meta.persist` keeps reference/profile/list-of-things data warm and leaves the noisy stuff out.
 
-**How to apply:** Mark a query `meta: { persist: true } as const` when (a) it's data you'd want visible immediately on cold start, and (b) it's not so volatile that stale data is worse than no data. Account info, reference lists, user preferences: yes. Search results, infinite scroll pages, map viewport queries: no.
+**How to apply:** Mark a query `meta: { persist: true }` when (a) it's data you'd want visible immediately on cold start, and (b) it's not so volatile that stale data is worse than no data. Account info, reference lists, user preferences: yes. Search results, infinite scroll pages, map viewport queries: no.
 
 ### 12. Prefer `queryOptions()` for **all** read paths — `prefetchQuery`, `ensureQueryData`, `setQueryData`
 
@@ -412,32 +411,35 @@ const cached = queryClient.getQueryData<TreeProfile>(treeQueries.tree(publicId).
 queryClient.setQueryData(treeQueries.tree(publicId).queryKey, fullTree);
 ```
 
-**Why:** `queryOptions()` is the only definition of "what is this query, how do I run it, what are its settings." Every API that takes options accepts the factory result directly — no second definition, no mismatched staleTime between a `useQuery` and a `prefetchQuery`. This single-source-of-truth property is the entire reason `queryOptions` exists.
+**Why:** `queryOptions()` is the one definition of the query's **identity** — its key and its `queryFn`. Every API that takes options accepts the factory result directly, so a prefetch, a route loader, and a `useQuery` all target the exact same cache entry with no second key definition. (Freshness knobs like `staleTime` live in the hook, not here — so a bare prefetch uses the client's default `staleTime`; pass one to `prefetchQuery` if it must match a hook's override.)
 
 **How to apply:** In route loaders, in `onMutate` (`getQueryData`), in mutation `onSuccess` (`setQueryData`), in hover prefetches — always reach for the factory. If you're typing `queryKey: [...]` by hand outside the keys file, you're doing it wrong.
 
-### 13. `useInfiniteQuery` via `infiniteQueryOptions()` with explicit `pageParam` typing
+### 13. `useInfiniteQuery` via `infiniteQueryOptions()`
 
 ```ts
 infiniteTrees: (filters?: string) => {
   const limit = 40;
   return infiniteQueryOptions({
-    queryKey: [...treeQueries.infiniteTreesConstant(), { filters, limit }] as const,
+    queryKey: [...treeQueries.all(), "infinite", { filters, limit }],
     queryFn: ({ pageParam }) => fetchInfiniteTrees(limit, filters, pageParam),
     initialPageParam: null as { id: number; cursor: string | number | null } | null,
     getNextPageParam: (lastPage) => {
-      if (lastPage.length < limit) return undefined;
+      if (lastPage.length < limit) return undefined; // ← `undefined` = "no more pages" (never `null`)
       const last = lastPage[lastPage.length - 1];
       return { id: last.id, cursor: last.createdAt };
     },
-    gcTime: 0, // infinite scroll caches grow unboundedly — drop when unmounted
   });
 };
+
+// gcTime is an extra prop → set it in the hook, not the factory:
+export const useInfiniteTrees = (filters?: string) =>
+  useInfiniteQuery({ ...treeQueries.infiniteTrees(filters), gcTime: 0 });
 ```
 
-**Why:** `infiniteQueryOptions()` typechecks the relationship between `initialPageParam`, `getNextPageParam`'s return, and `queryFn`'s `pageParam` arg — get one wrong and TS will tell you. Putting `gcTime: 0` on infinite queries is a default unless you have a reason to keep paged data around: every filter change creates a new cache entry, and they pile up.
+**Why:** `infiniteQueryOptions()` typechecks `initialPageParam` ↔ `getNextPageParam`'s return ↔ `queryFn`'s `pageParam`. Two traps fail *silently*: returning `null` instead of `undefined` from `getNextPageParam` fetches forever, and forgetting `gcTime: 0` (set in the hook) leaks one cache entry per filter for the whole session.
 
-**How to apply:** Cursor-based pagination is almost always the right default — return `undefined` from `getNextPageParam` when the last page is short. For offset/page-number APIs, the page param can just be a number; the structure is the same.
+**How to apply:** Cursor pagination is the default — return `undefined` when the last page is short. See `references/infinite-queries.md` for offset APIs, `maxPages`, patching cached pages from a mutation, and `FlatList`/`FlashList` wiring.
 
 ### 14. One feature domain per file — never mix `auth.queries.ts` with order code
 
@@ -523,39 +525,32 @@ Looking at a real file layout end-to-end
 
 ---
 
-## Critical rules from upstream (echoed for visibility)
+## Silent-failure traps (inherited from upstream)
 
-These are inherited from the upstream skill — they're the rules that *silently* cause cache bugs if violated. Worth keeping in mind even when you're "just" applying conventions:
+These fail *silently* — valid TypeScript, no error, wrong cache. Keep them in mind even when "just" applying conventions:
 
-1. **Query keys are arrays, fully serializable, and include every dependency.** A query whose result depends on `userId` and `filter` must have both in the key. (`qk-array-structure`, `qk-include-dependencies`, `qk-serializable`)
-2. **Keys are organized hierarchically** — entity → id → filters — so prefix-based invalidation works. (`qk-hierarchical-organization`)
-3. **`staleTime` and `gcTime` are not the same.** Stale = "may refetch on next use"; gc = "evict from cache after N ms of being unused." (`cache-stale-time`, `cache-gc-time`)
-4. **Targeted invalidation > broad invalidation.** Invalidate the smallest scope that matches what you changed. (`cache-invalidation`)
-5. **Optimistic updates require rollback context returned from `onMutate`.** (`mut-optimistic-updates`, `mut-rollback-context`)
-6. **`getNextPageParam` must return `undefined` to signal "no more pages."** Returning `null` keeps fetching. (`inf-page-params`)
-7. **For SSR: one `QueryClient` per request**, dehydrate on server, hydrate on client. (`ssr-client-per-request`, `ssr-dehydration`)
-8. **`select` is for transforming, not filtering** — it runs after structural sharing and won't reduce re-renders if the input changes. (`perf-select-transform`)
+1. **Every key is serializable and includes every dependency.** A result that varies by `userId`, `filter`, or `locale` must carry each in its key, or the cache serves the wrong data. No functions, `Date`, `Map`, `Set`, or class instances in a key. (`qk-serializable`, `qk-include-dependencies`)
+2. **`staleTime` ≠ `gcTime`.** Stale = "may refetch on next use"; gc = "evict after N ms unused." (`cache-stale-time`, `cache-gc-time`)
+3. **Targeted invalidation beats broad.** Invalidate the smallest scope that matches what changed: `[...all(), "list"]` when only lists moved, `all()` only for a feature-wide change. (`cache-invalidation`)
+4. **`select` transforms, it doesn't filter** — it runs after structural sharing and won't cut re-renders when the input changes. (`perf-select-transform`)
+5. **SSR: one `QueryClient` per request** — a module-level client leaks data between users. (`ssr-dehydration`)
 
-Full text + many more rules in `references/upstream/rules/`.
+Full text + the rest of the rules in `references/upstream/rules/`.
 
 ---
 
-## Decision questions when writing data-fetching code
+## Before you finish — quick self-check
 
-Run through these before finishing a hook or mutation — they catch the most common mistakes:
+Each catches a real, skippable mistake:
 
-- Is this query in the right `<feature>/` folder, or did I drop it somewhere ad-hoc?
-- Does the key live in `<feature>.keys.ts` via `queryOptions()`, not as a literal in the hook file?
-- Does the hook accept `{ queryConfig }` / `{ mutationConfig }` typed with `QueryConfig<typeof keys.x>` / `MutationConfig<typeof requestFn>`?
-- Is the network call in `<feature>.requests.ts` as a typed function — not inlined?
-- Does this mutation invalidate via the key factory (not a stringly-typed prefix)?
-- For list mutations: am I invalidating via a `<thing>Constant` prefix so every filter variant clears?
-- For optimistic updates: cancel → snapshot → update → rollback in `onError` → reconcile in `onSuccess`?
-- Did I destructure `{ onSuccess, ...rest }` from `mutationConfig` so the consumer's callback fires *after* my invalidation?
-- Does this query need `enabled` guarded on its dependencies? (`!!dep && queryConfig.enabled !== false`)
-- Is `staleTime` set intentionally, not by accident?
-- For infinite queries: is `gcTime: 0` set unless I have a reason to keep paged data around?
-- Should this query be `meta: { persist: true } as const`?
+- Does the key live in `<feature>.keys.ts` via `queryOptions()` — with no `queryKey: [...]` literal in the hook or at any call site?
+- Does the hook take `{ queryConfig }` / `{ mutationConfig }` typed with `QueryConfig<typeof keys.x>` / `MutationConfig<typeof requestFn>`?
+- Is the network call a typed function in `<feature>.requests.ts`, not an inline `fetch`/`axios`?
+- Does the mutation invalidate through the factory (never a stringly-typed prefix) — `all()` for a broad write, `[...all(), "<scope>"]` for a targeted one?
+- Did you destructure `{ onSuccess, ...rest }` so the consumer's callback fires *after* your invalidation, with `...rest` before `mutationFn`?
+- Optimistic update: cancel → snapshot → write → rollback in `onError` → reconcile in `onSuccess`?
+- Is every query with a dependency (`token`, `id`, `filter`) guarded by `enabled: !!dep && queryConfig.enabled !== false`?
+- Infinite query: `gcTime: 0`, and `getNextPageParam` returning `undefined` (not `null`) at the end?
 
 ---
 

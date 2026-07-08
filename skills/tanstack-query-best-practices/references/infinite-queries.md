@@ -10,12 +10,12 @@ import { infiniteQueryOptions } from "@tanstack/react-query";
 import { fetchPostsPage } from "./post.requests";
 
 export const postQueries = {
-  infinitePostsConstant: () => ["infinitePosts"] as const,
+  all: () => ["posts"] as const,
 
   infinitePosts: (filters?: { authorId?: string; sort?: "new" | "top" }) => {
     const limit = 40;
     return infiniteQueryOptions({
-      queryKey: [...postQueries.infinitePostsConstant(), { filters, limit }] as const,
+      queryKey: [...postQueries.all(), "infinite", { filters, limit }],
       initialPageParam: null as { id: string; createdAt: string } | null,
       queryFn: ({ pageParam }) => fetchPostsPage({ limit, filters, cursor: pageParam }),
       getNextPageParam: (lastPage) => {
@@ -23,7 +23,6 @@ export const postQueries = {
         const last = lastPage[lastPage.length - 1];
         return { id: last.id, createdAt: last.createdAt };
       },
-      gcTime: 0, // infinite caches grow per filter — drop on unmount
     });
   },
 };
@@ -39,7 +38,7 @@ type UseInfinitePostsOptions = {
 };
 
 export const useInfinitePosts = ({ queryConfig = {}, filters }: UseInfinitePostsOptions = {}) =>
-  useInfiniteQuery({ ...postQueries.infinitePosts(filters), ...queryConfig });
+  useInfiniteQuery({ ...postQueries.infinitePosts(filters), gcTime: 0, ...queryConfig });
 ```
 
 ## `getNextPageParam` rules
@@ -54,7 +53,7 @@ export const useInfinitePosts = ({ queryConfig = {}, filters }: UseInfinitePosts
 ```ts
 infinitePosts: () =>
   infiniteQueryOptions({
-    queryKey: [...postQueries.infinitePostsConstant()] as const,
+    queryKey: [...postQueries.all(), "infinite"],
     initialPageParam: 0,
     queryFn: ({ pageParam }) => fetchPostsPage({ offset: pageParam, limit: 40 }),
     getNextPageParam: (lastPage, _allPages, lastOffset) =>
@@ -96,7 +95,7 @@ To patch across **every variant** of an infinite list (different filters):
 
 ```ts
 queryClient.getQueryCache()
-  .findAll({ queryKey: postQueries.infinitePostsConstant() })
+  .findAll({ queryKey: [...postQueries.all(), "infinite"] })
   .forEach((query) => {
     const data = queryClient.getQueryData<InfiniteData<Post[]>>(query.queryKey);
     if (!data) return;
@@ -130,7 +129,7 @@ Then **invalidate** in `onSettled` to bring back the canonical server state once
 
 ```ts
 onSettled: () => {
-  queryClient.invalidateQueries({ queryKey: postQueries.infinitePostsConstant() });
+  queryClient.invalidateQueries({ queryKey: [...postQueries.all(), "infinite"] });
 }
 ```
 
@@ -138,7 +137,7 @@ onSettled: () => {
 
 Every filter variant becomes its own cache entry, and each entry holds all the pages the user scrolled through. Over the lifetime of a session, that's a lot of memory.
 
-`gcTime: 0` makes the cache evict the entry as soon as no component is subscribed to it (i.e. when the user navigates away). Pages refetch from the start next time the user opens the list — usually what you want for "feed"-style UIs.
+Set `gcTime: 0` on the hook's `useInfiniteQuery` (it's an extra prop, not a factory one) — it makes the cache evict the entry as soon as no component is subscribed to it (i.e. when the user navigates away). Pages refetch from the start next time the user opens the list — usually what you want for "feed"-style UIs.
 
 Keep `gcTime` non-zero only when:
 - Going back to the list should resume scroll position with the same pages loaded (e.g. a search results view where the user briefly inspects an item).

@@ -29,6 +29,7 @@ type UseAccountOptions = {
 export const useAccount = ({ queryConfig = {}, token }: UseAccountOptions = {}) =>
   useQuery({
     ...authQueries.account(),
+    staleTime: 1000 * 60 * 15, // 15 min — per-query staleTime lives in the hook, not the factory
     ...queryConfig,
     enabled: !!token && queryConfig.enabled !== false,
   });

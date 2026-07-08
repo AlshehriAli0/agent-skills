@@ -4,15 +4,15 @@
 
 > Part of [`AlshehriAli0/agent-skills`](https://github.com/AlshehriAli0/agent-skills) — see the [root README](../../README.md) for the full skill index.
 
-An opinionated agent skill for [TanStack Query](https://tanstack.com/query) (formerly React Query) in production React, React Native, and Next.js apps. It teaches Claude / Cursor / any agent the conventions used to ship a real codebase at scale: a strict per-feature folder split, `queryOptions()` key factories with a "Constants" prefix for broad invalidation, shared `QueryConfig` / `MutationConfig` type helpers, typed request functions (never inline `fetch`), and the cancel → snapshot → update → rollback → reconcile optimistic-update lifecycle.
+An opinionated agent skill for [TanStack Query](https://tanstack.com/query) (formerly React Query) in production React, React Native, and Next.js apps. It teaches Claude / Cursor / any agent the conventions used to ship a real codebase at scale: a strict per-feature folder split, `queryOptions()` key factories with a single `all()` root per feature for hierarchical invalidation, shared `QueryConfig` / `MutationConfig` type helpers, typed request functions (never inline `fetch`), and the cancel → snapshot → update → rollback → reconcile optimistic-update lifecycle.
 
 This skill is **layered on top of** the [TanStack Query Best Practices](https://www.skills.sh/deckardger/tanstack-agent-skills/tanstack-query-best-practices) skill by [@DeckardGer](https://github.com/DeckardGer) — 32 rules across 10 categories (query keys, caching, mutations, error handling, prefetching, infinite queries, SSR, parallel queries, performance, offline). The upstream rules are bundled under `references/upstream/` so this skill works offline.
 
 ## What this skill does
 
 - Tells the agent **where every file goes**: `src/api/<feature>/{types,requests,keys,queries,mutations}.ts` + a barrel `index.ts`.
-- Tells it **how to define keys**: always through a `queryOptions()` / `infiniteQueryOptions()` factory — never a literal `["key"]` at a call site.
-- Tells it **how to invalidate broadly**: a "Constants" prefix pattern (`infiniteTreesConstant: () => ["infiniteTrees"] as const`) so one mutation can clear every filtered variant in one line.
+- Tells it **how to define keys**: always through a `queryOptions()` / `infiniteQueryOptions()` factory — never a literal `["key"]` at a call site — each entry carrying only `queryKey`, `queryFn`, `meta`, `enabled`.
+- Tells it **how to invalidate broadly**: a single `all()` root per feature (`all: () => ["trees"] as const`), spread into every key — so one mutation can clear the whole feature, or any sub-tree, in one line.
 - Tells it **how to type hooks**: `QueryConfig<typeof keys.x>` and `MutationConfig<typeof requestFn>` helpers, so consumers get the full `useQuery` / `useMutation` option surface without leaking implementation details.
 - Tells it **how to write mutations**: destructure `{ onSuccess, ...rest } = mutationConfig`, run the hook's invalidation/setQueryData first, then call the consumer's `onSuccess`. `...rest` before `mutationFn` so it can't be overwritten.
 - Tells it **the full optimistic-update lifecycle**: cancel → snapshot → optimistic write → rollback in `onError` → reconcile in `onSuccess` → invalidate related lists in `onSettled`.
@@ -58,14 +58,14 @@ Any task involving TanStack Query: adding `useQuery` / `useMutation` / `useInfin
 
 - One folder per feature: `<feature>/{types,requests,keys,queries,mutations}.ts` + barrel.
 - Keys live **only** in `<feature>.keys.ts`, defined via `queryOptions()`. Spread into every consumer.
-- Add a `<thing>Constant` prefix function for any filtered list — mutations invalidate the whole family in one line.
+- Every feature factory opens with `all: () => ["<feature>"] as const`, spread into every key — mutations invalidate `all()` (whole feature) or `[...all(), "scope"]` (one sub-tree) in one line.
 - Hooks accept `{ queryConfig }` / `{ mutationConfig }` typed with `QueryConfig<typeof keys.x>` / `MutationConfig<typeof requestFn>`.
 - Network calls live in `<feature>.requests.ts`; hooks never call `fetch` / `axios` directly.
 - Mutations: destructure `{ onSuccess, ...rest } = mutationConfig`, run invalidation first, then call user's callback. `...rest` before `mutationFn`.
 - Optimistic updates: cancel → snapshot → write → rollback `onError` → reconcile `onSuccess`.
-- `staleTime` set in the factory, not the hook. `gcTime: 0` for infinite queries unless you specifically want to keep paged data.
-- `meta: { persist: true } as const` for queries that should survive cold start.
-- Invalidate via `keys.x().queryKey` or `keys.xConstant()` — never a stringly-typed array.
+- Factory entries carry only `queryKey`, `queryFn`, `meta`, `enabled` — `staleTime`, `gcTime` (e.g. `gcTime: 0` for infinite), `placeholderData`, `select` and any logic go in the hook body.
+- `meta: { persist: true }` for queries that should survive cold start.
+- Invalidate via `keys.all()`, `[...keys.all(), "scope"]`, or `keys.x().queryKey` — never a stringly-typed array.
 
 Read [`SKILL.md`](./SKILL.md) for the full set with rationale.
 
@@ -76,26 +76,25 @@ import { queryOptions } from "@tanstack/react-query";
 import { fetchAccount, searchAccounts, fetchAccountCard } from "./auth.requests";
 
 export const authQueries = {
+  all: () => ["auth"] as const,
+
   account: () =>
     queryOptions({
-      queryKey: ["account"] as const,
+      queryKey: [...authQueries.all(), "account"],
       queryFn: fetchAccount,
-      staleTime: 1000 * 60 * 15,
-      meta: { persist: true } as const,
+      meta: { persist: true },
     }),
 
   searchAccounts: (term: string, verifiedOnly?: boolean) =>
     queryOptions({
-      queryKey: ["accounts", "search", term, verifiedOnly] as const,
+      queryKey: [...authQueries.all(), "search", term, verifiedOnly],
       queryFn: () => searchAccounts(term, verifiedOnly),
       enabled: term.length > 0,
     }),
 
-  searchAccountsConstant: () => ["accounts", "search"] as const,
-
   accountCard: (encryptedPhone: string) =>
     queryOptions({
-      queryKey: ["accountCard", encryptedPhone] as const,
+      queryKey: [...authQueries.all(), "card", encryptedPhone],
       queryFn: () => fetchAccountCard(encryptedPhone),
       enabled: !!encryptedPhone,
     }),

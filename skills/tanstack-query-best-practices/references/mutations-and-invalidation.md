@@ -54,7 +54,7 @@ onSuccess: (serverResponse, vars) => {
   // Authoritative shape for the single-item view
   queryClient.setQueryData(authQueries.account().queryKey, serverResponse);
   // Catch-all for derived views the server might have changed
-  queryClient.invalidateQueries({ queryKey: authQueries.searchAccountsConstant() });
+  queryClient.invalidateQueries({ queryKey: [...authQueries.all(), "search"] });
 }
 ```
 
@@ -95,7 +95,7 @@ useMutation({
 
   // 6. Optional: refetch related lists either way
   onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: treeQueries.treesList() });
+    queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "list"] });
   },
 
   mutationFn: updateTreeInfo,
@@ -124,15 +124,15 @@ A mutation that updates one item often needs to also refresh the lists that cont
 
 ```ts
 // A. Just invalidate
-queryClient.invalidateQueries({ queryKey: postQueries.postsList() });
+queryClient.invalidateQueries({ queryKey: [...postQueries.all(), "list"] });
 
-// B. Surgical patch — only when you trust the response shape exactly
-queryClient.setQueryData<Post[]>(postQueries.postsList(), (old) =>
+// B. Surgical patch across every list variant — only when you trust the response shape
+queryClient.setQueriesData<Post[]>({ queryKey: [...postQueries.all(), "list"] }, (old) =>
   old?.map((p) => (p.id === updated.id ? updated : p))
 );
 
 // C. Surgical patch on infinite queries — same idea, walk pages
-queryClient.setQueryData<InfiniteData<Post[]>>(postQueries.infinitePostsConstant(), (old) => {
+queryClient.setQueriesData<InfiniteData<Post[]>>({ queryKey: [...postQueries.all(), "infinite"] }, (old) => {
   if (!old) return old;
   return {
     ...old,
@@ -143,7 +143,7 @@ queryClient.setQueryData<InfiniteData<Post[]>>(postQueries.infinitePostsConstant
 });
 ```
 
-**Heuristic:** Start with (A). Move to (B) or (C) only if you can measure that the refetch is causing perceptible lag.
+**Heuristic:** Start with (A) — invalidate. Move to (B)/(C) — patch via `setQueriesData` (the prefix-matching sibling of `setQueryData`, which takes only exact keys) — only if you can measure that the refetch causes perceptible lag.
 
 ## Cross-feature invalidation
 
@@ -155,7 +155,7 @@ import { treeQueries } from "../tree";
 
 onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: giftQueries.giftBatches() });
-  queryClient.invalidateQueries({ queryKey: treeQueries.treesList() }); // gifts affect tree lists
+  queryClient.invalidateQueries({ queryKey: [...treeQueries.all(), "list"] }); // gifts affect tree lists
 }
 ```
 

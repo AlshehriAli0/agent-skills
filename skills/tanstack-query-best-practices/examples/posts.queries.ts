@@ -4,13 +4,13 @@
  * Shows three patterns in one file:
  *  1. A single-entity query (`usePost`)
  *  2. A list query with `placeholderData: keepPreviousData` so filter changes don't flicker
- *  3. An infinite query with a "Constants" prefix for cross-variant invalidation
+ *  3. An infinite query sharing the feature's all() root for cross-variant invalidation
  *
  * Mutations on posts (create, update, delete) live in post.mutations.ts; they
  * invalidate via the keys defined here.
  */
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { postQueries } from "./post.keys";
 
@@ -48,6 +48,8 @@ type UsePostsOptions = {
 export const usePosts = ({ queryConfig = {}, filters }: UsePostsOptions = {}) =>
   useQuery({
     ...postQueries.posts(filters),
+    placeholderData: keepPreviousData, // avoid flicker on filter change
+    staleTime: 1000 * 60 * 5,          // 5 min
     ...queryConfig,
   });
 
@@ -66,6 +68,7 @@ export const useInfinitePosts = ({
 }: UseInfinitePostsOptions = {}) =>
   useInfiniteQuery({
     ...postQueries.infinitePosts(filters),
+    gcTime: 0, // drop paged data on unmount — feeds grow per filter
     ...queryConfig,
   });
 
@@ -87,33 +90,29 @@ export const usePostsCount = ({ queryConfig = {}, filters }: UsePostsCountOption
 /* -----------------------------------------------------------------------
  * For reference, the paired post.keys.ts looks like this:
  *
- * import { infiniteQueryOptions, keepPreviousData, queryOptions } from "@tanstack/react-query";
+ * import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
  * import { fetchPost, fetchPosts, fetchPostsPage, fetchPostsCount } from "./post.requests";
  *
  * export const postQueries = {
- *   postsList: () => ["posts"] as const,
- *   infinitePostsConstant: () => ["infinitePosts"] as const,
- *   postsCountConstant: () => ["postsCount"] as const,
+ *   all: () => ["posts"] as const,
  *
  *   post: (id: string) =>
  *     queryOptions({
- *       queryKey: ["post", id] as const,
+ *       queryKey: [...postQueries.all(), "detail", id],
  *       queryFn: () => fetchPost(id),
  *       enabled: !!id,
  *     }),
  *
  *   posts: (filters?: { authorId?: string; sort?: "new" | "top"; tag?: string | null }) =>
  *     queryOptions({
- *       queryKey: [...postQueries.postsList(), filters] as const,
+ *       queryKey: [...postQueries.all(), "list", filters],
  *       queryFn: () => fetchPosts(filters),
- *       placeholderData: keepPreviousData,   // avoid flicker on filter change
- *       staleTime: 1000 * 60 * 5,            // 5 min
  *     }),
  *
  *   infinitePosts: (filters?: { authorId?: string; sort?: "new" | "top" }) => {
  *     const limit = 40;
  *     return infiniteQueryOptions({
- *       queryKey: [...postQueries.infinitePostsConstant(), { filters, limit }] as const,
+ *       queryKey: [...postQueries.all(), "infinite", { filters, limit }],
  *       initialPageParam: null as { id: string; createdAt: string } | null,
  *       queryFn: ({ pageParam }) => fetchPostsPage({ limit, filters, cursor: pageParam }),
  *       getNextPageParam: (last) => {
@@ -121,13 +120,12 @@ export const usePostsCount = ({ queryConfig = {}, filters }: UsePostsCountOption
  *         const tail = last[last.length - 1];
  *         return { id: tail.id, createdAt: tail.createdAt };
  *       },
- *       gcTime: 0, // drop on unmount — feeds grow unboundedly per filter
  *     });
  *   },
  *
  *   postsCount: (filters?: { authorId?: string; tag?: string | null }) =>
  *     queryOptions({
- *       queryKey: [...postQueries.postsCountConstant(), filters] as const,
+ *       queryKey: [...postQueries.all(), "count", filters],
  *       queryFn: () => fetchPostsCount(filters),
  *     }),
  * };
