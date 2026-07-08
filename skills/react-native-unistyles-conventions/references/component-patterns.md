@@ -6,7 +6,7 @@ Real, runnable patterns showing the conventions in action. Copy/paste and adapt.
 
 ## 1. Pressable card with overlay + footer gradient + boxShadow
 
-The bread and butter — content card with a background image, dark overlay, gradient footer, and shadow. Demonstrates: theme spacing/radius, `experimental_backgroundImage`, `borderCurve`, `boxShadow`, `theme.scale()` for one-off sizes.
+The bread and butter: content card with a background image, dark overlay, gradient footer, and shadow. Demonstrates: theme spacing/radius, `experimental_backgroundImage`, `borderCurve`, `boxShadow`, `theme.scale()` for one-off sizes.
 
 ```tsx
 import { Text } from "@ui/text";
@@ -87,8 +87,8 @@ const styles = StyleSheet.create(theme => ({
 
 **Notes:**
 
-- `theme.scale(230)` — card height is a one-off not on the spacing scale, so we scale it explicitly rather than hardcoding `230`.
-- `StyleSheet.absoluteFillObject` is the polyfilled helper — no need to wrap it in your own `StyleSheet.create`.
+- `theme.scale(230)`: card height is a one-off not on the spacing scale, so we scale it explicitly rather than hardcoding `230`.
+- `StyleSheet.absoluteFillObject` is the polyfilled helper: no need to wrap it in your own `StyleSheet.create`.
 - The image, overlay, and footer all repeat `borderRadius` + `borderCurve` because clipping inside an `overflow: hidden` parent doesn't propagate the rounding to children's layout boxes.
 
 ---
@@ -145,7 +145,7 @@ const styles = StyleSheet.create(theme => ({
 
 **Notes:**
 
-- All variation logic lives **inside the stylesheet**, not the JSX — keeps components readable.
+- All variation logic lives **inside the stylesheet**, not the JSX, which keeps components readable.
 - The local `palette` lookup makes it easy to add a new variant: just add a row.
 - For more than ~3 variants or complex compounding (e.g., `size × color`), consider Unistyles' built-in `variants` + `compoundVariants` (see `references/upstream/styling-patterns.md`). Dynamic functions and variants both work; pick variants when you'd otherwise have a big lookup table.
 
@@ -193,7 +193,7 @@ const styles = StyleSheet.create(theme => ({
   label: {
     flex: 1,
     color: theme.text.primary,
-    textAlign: "left", // means "start" in native RTL — correct
+    textAlign: "left", // means "start" in native RTL, correct
   },
   chevron: {
     transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }],
@@ -203,10 +203,10 @@ const styles = StyleSheet.create(theme => ({
 
 **Notes:**
 
-- `I18nManager.isRTL` is static after app launch (RN restarts when language changes), so reading it at module scope inside `StyleSheet.create` is safe — no hook needed.
+- `I18nManager.isRTL` is static after app launch (RN restarts when language changes), so reading it at module scope inside `StyleSheet.create` is safe, no hook needed.
 - `flexDirection` is the one layout property that's safest to branch on `I18nManager.isRTL` explicitly.
 - `textAlign: "left"` actually means "start" in RN's native RTL mode, so it does the right thing.
-- Chevrons (and any directional icon) get `scaleX: -1` in RTL — they don't auto-flip.
+- Chevrons (and any directional icon) get `scaleX: -1` in RTL because they don't auto-flip.
 - `useUnistyles()` is used here because the icon's `color` and `size` are **props**, not style values.
 
 ---
@@ -295,7 +295,7 @@ const styles = StyleSheet.create(theme => ({
 **Notes:**
 
 - Template literals interpolate any theme color. `??` falls back if the stop you wanted doesn't exist on this project's palette.
-- Stick to `linear-gradient` and `radial-gradient` — they're the supported forms.
+- Stick to `linear-gradient` and `radial-gradient`: they're the supported forms.
 
 ---
 
@@ -363,21 +363,21 @@ The `TreeCard` from pattern #1 already wraps in `memo()`, so re-renders are skip
 
 ## When to reach for `useUnistyles()`
 
-Only when you need theme values **outside the `style` prop** — common cases:
+Only when you need theme values **outside the `style` prop**, common cases:
 
 - Icon `color` / `size` (props, not styles)
 - Image `tintColor`
 - Animated values driven by theme (e.g., `useSharedValue(theme.primary[500])`)
 - String interpolation, e.g., `Alert.alert("...")` text
 
-Inside `StyleSheet.create(theme => ...)`, the theme is already there — no hook needed.
+Inside `StyleSheet.create(theme => ...)`, the theme is already there, no hook needed.
 
 ```tsx
-// ✅ — theme used as a prop
+// ✅ theme used as a prop
 const { theme } = useUnistyles();
 return <ChevronRight color={theme.text.muted} size={theme.spacing[5]} />;
 
-// ❌ — unnecessary; theme is already in scope
+// ❌ unnecessary; theme is already in scope
 const { theme } = useUnistyles();
 const styles = useMemo(
   () => ({ row: { backgroundColor: theme.bg.default } }),

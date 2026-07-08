@@ -1,47 +1,32 @@
 ---
 name: react-native-unistyles-conventions
 description: >
-  Opinionated conventions for react-native-unistyles v3 in production React Native / Expo apps:
-  Tailwind-style theme scales (spacing, radius, fontSize) using moderateScale, dynamic-function
-  styling, gap-over-margin, theme-only values, borderCurve, boxShadow, gradients via
-  experimental_backgroundImage, RTL handling, and component patterns. Triggers on: "unistyles",
-  "StyleSheet.create", "theme", "responsive styling", "convert to unistyles", "set up unistyles",
-  "unistyles theme", "spacing scale", "Tailwind-style theme", "RN styling", "react native theme",
-  or any task styling React Native components in a project that uses (or should use) unistyles.
-  Bundles the upstream react-native-unistyles v3 skill from the library author for foundational
-  API/setup details.
+  Opinionated production conventions for react-native-unistyles v3 (React Native / Expo):
+  Tailwind-style theme scales, dynamic-function styling over conditional arrays, gap-over-margin,
+  theme-only values. Use when styling or theming React Native / Expo components, writing or
+  refactoring StyleSheet.create, converting RN StyleSheet to unistyles, or setting up unistyles.
+  Bundles the upstream unistyles v3 skill (jpudysz) for foundational API and setup.
 disable-model-invocation: false
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(npx *)
 ---
 
-# React Native Unistyles — Mobile Conventions
+# React Native Unistyles: Mobile Conventions
 
-This skill captures opinionated conventions for `react-native-unistyles` v3 in production React Native / Expo apps. It sits **on top of** the upstream skill written by jpudysz (the library author) — that skill covers the framework's API surface, setup, variants, web features, and troubleshooting. This skill covers the **how** of using it day-to-day in a mobile app: what your theme should look like, how to write style objects, and patterns that hold up across hundreds of components.
+This skill sits **on top of** the upstream skill by jpudysz (the library author). That one covers the API surface, setup, variants, web, and troubleshooting; this one is the day-to-day **how**: what your theme looks like, how you write style objects, and patterns that hold across hundreds of components. Apply these conventions by default when you touch React Native styling.
 
-When working on tasks involving React Native styling, theme, or `StyleSheet.create`, apply these conventions by default. They are tuned for mobile-first apps that:
-
-- Use Tailwind-flavored design tokens (spacing/radius/fontSize scales)
-- Want device-responsive sizing without hand-tuning every screen
-- Render the same components in both LTR and RTL
-- Use Reanimated, Pressables, Expo Router, and FlashList
-
-For anything not covered here (initial install, Babel config, variants, withUnistyles, web/SSR, common error messages), read the upstream skill: `references/upstream/skill.md` and the `references/upstream/*.md` files.
+Anything this skill doesn't cover (setup, variants, `withUnistyles`, web/SSR, error messages) lives in the bundled upstream skill; the reference table below routes by task.
 
 ---
 
 ## The big picture
 
-Unistyles v3 lets you write style objects that are **reactive to theme and runtime** with **zero re-renders** because the work happens in C++ via Nitro. The catch: the Babel plugin only catches `StyleSheet.create` calls when `StyleSheet` is imported directly from `react-native-unistyles`. Everything in this skill assumes that import.
+Unistyles v3 lets you write style objects that are **reactive to theme and runtime** with **zero re-renders**, because the work happens in C++ via Nitro. Everything here assumes you import `StyleSheet` from `react-native-unistyles` (convention 1 explains why it must be that import).
 
-The mental model:
+Two ideas anchor the conventions below:
 
-- **Theme is the source of truth for every style value.** Pixels, colors, font sizes — all live in the theme. Components don't invent values.
-- **Styles are functions of theme** (`StyleSheet.create(theme => ({ ... }))`). When `useUnistyles()` re-renders a component, your styles update without you wiring anything.
-- **Conditional styles are functions, not arrays.** Instead of `[styles.base, isActive && styles.active]`, write `styles.button(isActive)` — keeps the C++ proxy intact and reads cleaner.
-- **Layout uses `gap` and `padding`, not `margin`.** Margin collapses, leaks past component boundaries, and makes spacing logic non-local. Padding stays inside; gap stays between.
-
-If you're unsure why a rule exists, the **Why** lines below should give you enough to judge edge cases.
+- **Theme is the source of truth for every style value.**
+- **Styles are functions of theme** (`StyleSheet.create(theme => ({ ... }))`): when the theme changes, they update with no wiring.
 
 ---
 
@@ -53,11 +38,11 @@ If you're unsure why a rule exists, the **Why** lines below should give you enou
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 ```
 
-**Why:** The Babel plugin matches the import source. Re-exporting `StyleSheet` from a barrel file or importing it from `react-native` breaks reactivity silently — styles still render, but they stop updating when the theme changes.
+**Why:** The Babel plugin matches the import source. Re-exporting `StyleSheet` from a barrel file or importing it from `react-native` breaks reactivity silently: styles still render, but they stop updating when the theme changes.
 
 **How to apply:** When you see `import { StyleSheet } from "react-native"` in a file you're editing, replace it. Don't create barrel files that re-export `StyleSheet`.
 
-### 2. Always use theme values — never hardcoded pixels or hex
+### 2. Always use theme values, never hardcoded pixels or hex
 
 ```ts
 // ✅
@@ -73,7 +58,7 @@ backgroundColor: "#00CD59",
 
 **Why:** The theme already encodes responsive scaling (`moderateScale`) and dark-mode color shifts. Hardcoded values bypass both, so your design drifts on small/large devices and breaks dark mode. Also: when designers iterate on a token, you change one place instead of grepping the codebase.
 
-**How to apply:** If a value isn't in the scale (e.g., 14px when `spacing[3]` is 12 and `spacing[4]` is 16), use `theme.sizing.scale(14)` for the one-off — don't hardcode `14`. If you need a value frequently, propose adding it to the scale instead.
+**How to apply:** If a value isn't in the scale (e.g., 14px when `spacing[3]` is 12 and `spacing[4]` is 16), use `theme.scale(14)` for the one-off; don't hardcode `14`. If you need a value frequently, propose adding it to the scale instead.
 
 ### 3. Conditional styles are dynamic functions, not style arrays
 
@@ -92,9 +77,9 @@ const styles = StyleSheet.create(theme => ({
 <Pressable style={[styles.base, isActive && styles.active]} />;
 ```
 
-**Why:** Dynamic functions are first-class in v3 — the C++ proxy receives the args and recomputes only the affected styles. Style arrays with falsy entries break the proxy in subtle ways (the indices shift) and force a JS-side merge step. Functions also keep all variation logic in one place near the values.
+**Why:** Dynamic functions are first-class in v3: the C++ proxy receives the args and recomputes only the affected styles. Style arrays with falsy entries break the proxy in subtle ways (the indices shift) and force a JS-side merge step. Functions also keep all variation logic in one place near the values.
 
-**How to apply:** Anywhere you'd reach for a ternary or `&&` in the `style` prop, move it into the stylesheet as a parameterized function. Combining pre-made styles with array syntax (`[styles.base, styles.elevated]`) is still fine — the rule is about **conditional/value-dependent** branches, not composition.
+**How to apply:** Anywhere you'd reach for a ternary or `&&` in the `style` prop, move it into the stylesheet as a parameterized function. Combining pre-made styles with array syntax (`[styles.base, styles.elevated]`) is still fine: the rule is about **conditional/value-dependent** branches, not composition.
 
 ### 4. `borderRadius` always pairs with `borderCurve: "continuous"`
 
@@ -107,7 +92,7 @@ borderCurve: "continuous",
 
 **How to apply:** Anytime you write `borderRadius`, add `borderCurve: "continuous"` on the next line. If a designer specifies sharp corners (radius 0), skip both.
 
-### 5. No `as const` inside `StyleSheet.create` — the typed `create` already narrows for you
+### 5. No `as const` inside `StyleSheet.create`: the typed `create` already narrows for you
 
 ```ts
 // ✅
@@ -129,11 +114,11 @@ const styles = StyleSheet.create(theme => ({
 }));
 ```
 
-**Why:** `StyleSheet.create` is generic over RN's style shape, so `"row"` is already inferred against the `flexDirection` union — `as const` adds nothing and `@typescript-eslint/no-unnecessary-type-assertion` flags it.
+**Why:** `StyleSheet.create` is generic over RN's style shape, so `"row"` is already inferred against the `flexDirection` union; `as const` adds nothing and `@typescript-eslint/no-unnecessary-type-assertion` flags it.
 
-**How to apply:** Write bare literals. If TS *does* widen a value to `string`, it's a real signal — usually the wrong `StyleSheet` import (see rule 1) or an inline object outside `create()`. Fix that, don't paper over it.
+**How to apply:** Write bare literals. If TS *does* widen a value to `string`, it's a real signal: usually the wrong `StyleSheet` import (see rule 1) or an inline object outside `create()`. Fix that, don't paper over it.
 
-### 6. Don't pass `theme` as a prop — children call `useUnistyles()` themselves
+### 6. Don't pass `theme` as a prop: children call `useUnistyles()` themselves
 
 ```ts
 // ✅
@@ -148,9 +133,9 @@ const Child = () => {
 
 **Why:** Passing theme through props re-renders the parent every theme change and creates implicit coupling. `useUnistyles()` is cheap and component-local.
 
-**How to apply:** Only call `useUnistyles()` when you need theme values **outside** the `style` prop — e.g., for icon `color`, image `tintColor`, or string interpolation. Inside `StyleSheet.create`, the theme is already there.
+**How to apply:** Only call `useUnistyles()` when you need theme values **outside** the `style` prop, e.g., for icon `color`, image `tintColor`, or string interpolation. Inside `StyleSheet.create`, the theme is already there.
 
-### 7. Use `gap` on the parent — not `margin` on children
+### 7. Use `gap` on the parent, not `margin` on children
 
 ```ts
 // ✅
@@ -178,7 +163,7 @@ card: {
 },
 ```
 
-**Why:** Conflating the two leads to inconsistent rhythm — the same visual gap might be `padding` in one component and `margin` in another. Picking one rule keeps spacing readable.
+**Why:** Conflating the two leads to inconsistent rhythm: the same visual gap might be `padding` in one component and `margin` in another. Picking one rule keeps spacing readable.
 
 ### 9. Gradients via `experimental_backgroundImage`, not gradient libraries
 
@@ -189,7 +174,7 @@ overlay: {
 },
 ```
 
-**Why:** Native CSS-style gradients are baked into RN's New Architecture — no extra library, no extra view, no shader cost. Pulls in zero dependencies and works on both platforms.
+**Why:** Native CSS-style gradients are baked into RN's New Architecture: no extra library, no extra view, no shader cost. Pulls in zero dependencies and works on both platforms.
 
 **How to apply:** Use template literals to interpolate theme colors when you need them: `linear-gradient(to bottom, ${theme.primary[400]}, ${theme.primary[600]})`. Avoid `expo-linear-gradient`, `react-native-linear-gradient`, etc.
 
@@ -213,9 +198,9 @@ card: {
 
 **Why:** `boxShadow` is supported on RN 0.76+ on both iOS and Android (via the New Architecture) and matches CSS semantics, so designers can paste values directly from Figma. The legacy split (iOS shadow* / Android elevation) is verbose, asymmetric, and easy to get wrong.
 
-**How to apply:** When you see legacy shadow props in code you're editing, migrate them. Use the design system's shadow tokens (`theme.shadows.md` etc. — see template) when available.
+**How to apply:** When you see legacy shadow props in code you're editing, migrate them. Use the design system's shadow tokens (`theme.shadows.md` etc., see template) when available.
 
-### 11. RTL — branch on `I18nManager.isRTL`, don't hand-flip
+### 11. RTL: branch on `I18nManager.isRTL`, don't hand-flip
 
 ```ts
 import { I18nManager } from "react-native";
@@ -241,7 +226,7 @@ const styles = StyleSheet.create({ fill: StyleSheet.absoluteFill });
 <View style={styles.fill} />;
 ```
 
-**Why:** Wrapping static helpers (`absoluteFill`, `hairlineWidth`) inside `create` adds nothing — Unistyles already polyfills them on its `StyleSheet` export.
+**Why:** Wrapping static helpers (`absoluteFill`, `hairlineWidth`) inside `create` adds nothing: Unistyles already polyfills them on its `StyleSheet` export.
 
 ---
 
@@ -249,24 +234,18 @@ const styles = StyleSheet.create({ fill: StyleSheet.absoluteFill });
 
 The conventions above all assume a theme shaped a specific way. The shape:
 
-- **`spacing`** — Tailwind-style numeric scale (`0, px, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 72, 80, 96`). Each value passes through `moderateScale` so phones-of-different-sizes render proportionally without manual breakpoints. Plus `auto` and a `scale` helper for one-offs.
-- **`radius`** — `none, sm, base, md, lg, xl, 2xl, 3xl, full`.
-- **`fontSize`** — `xxs, xs, sm, base, lg, xl, 2xl, 3xl, 4xl, 5xl, 6xl, 7xl, 8xl, 9xl`.
-- **`sizing`** — spacing scale + `full | screen | min | max | fit` for percentage/intrinsic sizes.
-- **`fontWeight`** — `extraLight (200) … black (900)`.
-- **`screen`** — `width`, `height`, `isTablet`, `isSmallDevice`, `isLargeDevice` (computed once at startup; fine for layout decisions, not for live orientation changes — use `rt.screen` from `(theme, rt) =>` for that).
-- **`scale`** — exposed at the top level for raw scaling needs.
-- **Color tokens** — semantic groups (`primary`, `secondary`, `accent`, `bg`, `text`, `neutral`, `success`, `warning`, `error`, `info`). Multi-stop colors use either numeric (`50–500`) or `{ DEFAULT, light, border }` shape.
-- **`shadows`** (optional) — `none, sm, md, lg, xl` — pre-baked `boxShadow` strings or legacy objects depending on what you've migrated.
-- **`typography`** (optional) — design-system-named text styles (`h1, h2, h3, paragraphL/M/S, paragraphMSoft/SSoft, labelM, label`) that can be spread into a style: `...theme.typography.paragraphMSoft`.
+- **`spacing`**: Tailwind-style numeric scale (`0` through `96`, on Tailwind's steps), each value passed through `moderateScale` so different-sized phones render proportionally without manual breakpoints. Plus `auto` and a `scale` helper for one-offs.
+- **`radius`**: `none, sm, base, md, lg, xl, 2xl, 3xl, full`.
+- **`fontSize`**: `xxs, xs, sm, base, lg, xl, 2xl, 3xl, 4xl, 5xl, 6xl, 7xl, 8xl, 9xl`.
+- **`sizing`**: spacing scale + `full | screen | min | max | fit` for percentage/intrinsic sizes.
+- **`fontWeight`**: `extraLight (200) … black (900)`.
+- **`screen`**: `width`, `height`, `isTablet`, `isSmallDevice`, `isLargeDevice` (computed once at startup; fine for layout decisions, not for live orientation changes; use `rt.screen` from `(theme, rt) =>` for that).
+- **`scale`**: exposed at the top level for raw scaling needs.
+- **Color tokens**: semantic groups (`primary`, `secondary`, `accent`, `bg`, `text`, `neutral`, `success`, `warning`, `error`, `info`). Multi-stop colors use either numeric (`50–500`) or `{ DEFAULT, light, border }` shape.
+- **`shadows`** (optional): `none, sm, md, lg, xl`, pre-baked `boxShadow` strings or legacy objects depending on what you've migrated.
+- **`typography`** (optional): design-system-named text styles (`h1, h2, h3, paragraphL/M/S, paragraphMSoft/SSoft, labelM, label`) that can be spread into a style: `...theme.typography.paragraphMSoft`.
 
 For the full template you can drop into a new project, read **`references/theme-template.md`**.
-
----
-
-## Component patterns
-
-For complete, runnable examples — pressable card, dynamic-function button, RTL-aware row, list item, gradient overlay, themed icon — read **`references/component-patterns.md`**.
 
 ---
 
@@ -279,7 +258,7 @@ Setting up unistyles in a new project
 
 Writing or refactoring components
 └─ THIS FILE (conventions + rationale)
-└─ references/component-patterns.md    (real snippets)
+└─ references/component-patterns.md    (card, button, RTL row, list item, gradient, themed icon)
 
 Writing variants, breakpoints, web styles
 └─ references/upstream/styling-patterns.md
@@ -298,32 +277,22 @@ Hitting an error or unexpected behavior
 
 ## Critical rules from upstream (echoed for visibility)
 
-These are inherited from the library author's skill — they cause silent breakage if violated, so they're worth keeping in mind even when you're "just" applying conventions:
+Inherited from the library author's skill: they cause silent breakage if violated, so keep them in view even when you're "just" applying conventions:
 
-1. **Never spread styles** (`{...styles.x}`) — breaks the C++ proxy. Use `[styles.x, styles.y]` for composition.
-2. **Never re-export `StyleSheet` from a barrel** — Babel plugin won't see it.
-3. **Babel plugin is required** — `['react-native-unistyles/plugin', { root: 'src' }]` in `babel.config.js`.
-4. **`StyleSheet.configure()` runs once before any `create`** — do it in the app entry, not lazily.
-5. **`styles.useVariants(...)`** must be called before reading variant-dependent styles, like a hook.
+1. **Never spread styles** (`{...styles.x}`): breaks the C++ proxy. Use `[styles.x, styles.y]` for composition.
+2. **Babel plugin is required**: `['react-native-unistyles/plugin', { root: 'src' }]` in `babel.config.js`.
+3. **`StyleSheet.configure()` runs once before any `create`**: do it in the app entry, not lazily.
+4. **`styles.useVariants(...)`** must be called before reading variant-dependent styles, like a hook.
 
-Full text + many more in `references/upstream/skill.md`.
+Full text + more in `references/upstream/skill.md`.
 
 ---
 
-## Decision questions when styling
+## Before a component is done
 
-Run through these before finishing a component — they catch the most common mistakes:
+Walk conventions 1–12 against what you actually wrote: the bar is that *every* one holds, not most. Most misses cluster in three: a stray hardcoded value or hex, a `borderRadius` with no `borderCurve` beside it, or a conditional written as a `[base, cond && x]` array instead of a function.
 
-- Did I import `StyleSheet` from `react-native-unistyles`?
-- Are all values from the theme (spacing/radius/fontSize/colors)? Any stray numbers or hex codes?
-- Does every `borderRadius` have a `borderCurve: "continuous"` next to it?
-- Are conditional styles dynamic functions, not style arrays with `&&`?
-- Is spacing done with `gap` (between) and `padding` (inside) — no `margin` on children?
-- Is the row direction RTL-aware?
-- For network images, am I using `TurboImage` (project convention)?
-- For gradients, am I using `experimental_backgroundImage`?
-- For shadows, am I using `boxShadow`?
-- Is `useUnistyles()` only called when I need theme **outside** the style prop?
+One project convention not covered above: network images use `TurboImage`, not RN's `Image`.
 
 ---
 

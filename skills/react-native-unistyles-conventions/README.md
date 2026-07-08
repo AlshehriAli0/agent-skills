@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/AlshehriAli0/agent-skills/react-native-unistyles-conventions)](https://skills.sh/AlshehriAli0/agent-skills/react-native-unistyles-conventions)
 
-> Part of [`AlshehriAli0/agent-skills`](https://github.com/AlshehriAli0/agent-skills) — see the [root README](../../README.md) for the full skill index.
+> Part of [`AlshehriAli0/agent-skills`](https://github.com/AlshehriAli0/agent-skills). See the [root README](../../README.md) for the full skill index.
 
 An opinionated agent skill for [react-native-unistyles](https://github.com/jpudysz/react-native-unistyles) v3 in production React Native / Expo apps. It teaches Claude / Cursor / any agent the conventions used to ship a real mobile app at scale: Tailwind-style theme scales, dynamic-function styling, gap-over-margin, RTL handling, and component patterns drawn from real production code.
 
@@ -40,7 +40,7 @@ Any task involving React Native styling, theme work, `StyleSheet.create`, respon
 ## Conventions in 30 seconds
 
 - Theme is the source of truth (no hardcoded pixels or hex codes).
-- `StyleSheet.create(theme => ...)` everywhere — never RN's `StyleSheet`.
+- `StyleSheet.create(theme => ...)` everywhere, never RN's `StyleSheet`.
 - Conditional styles are **dynamic functions** (`button: (active) => ({ ... })`), not `[a, cond && b]` arrays.
 - `gap` between siblings, `padding` inside, never `margin` on children.
 - `borderRadius` always pairs with `borderCurve: "continuous"`.
@@ -56,4 +56,4 @@ Foundational API reference, setup guide, and troubleshooting bundled from the of
 
 ## License
 
-MIT — see the [root LICENSE](../../LICENSE). The bundled upstream files in `references/upstream/` are authored by Jacek Pudysz; see [`references/upstream/README.md`](./references/upstream/README.md) for attribution.
+MIT. See the [root LICENSE](../../LICENSE). The bundled upstream files in `references/upstream/` are authored by Jacek Pudysz; see [`references/upstream/README.md`](./references/upstream/README.md) for attribution.

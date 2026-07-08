@@ -8,7 +8,7 @@ import "./unistyles";
 import "expo-router/entry";
 ```
 
-The template gives you Tailwind-style scales, screen helpers, breakpoints, and a light/dark theme. Customize the color section per project — keep the structural keys (`bg`, `text`, `primary`, etc.) so components written against the conventions are portable.
+The template gives you Tailwind-style scales, screen helpers, breakpoints, and a light/dark theme. Customize the color section per project, but keep the structural keys (`bg`, `text`, `primary`, etc.) so components written against the conventions are portable.
 
 ---
 
@@ -18,7 +18,7 @@ The template gives you Tailwind-style scales, screen helpers, breakpoints, and a
 bun add react-native-unistyles react-native-nitro-modules react-native-edge-to-edge react-native-size-matters
 ```
 
-`react-native-size-matters` provides `moderateScale`, which scales values proportionally to the device's screen — phones look balanced without per-screen breakpoints.
+`react-native-size-matters` provides `moderateScale`, which scales values proportionally to the device's screen, so phones look balanced without per-screen breakpoints.
 
 `babel.config.js`:
 
@@ -44,7 +44,7 @@ const scale = (size: number): number => Math.round(moderateScale(size));
 
 // ---------- Spacing (Tailwind-style numeric scale) ----------
 // `as unknown as N` keeps TS literal types so theme.spacing[4] is typed as `16`,
-// not `number` — useful if you later want to constrain props to specific values.
+// not `number`, useful if you later want to constrain props to specific values.
 const createSpacing = () =>
   ({
     0: 0,
@@ -149,7 +149,7 @@ const fontWeight = {
   black: 900,
 } as const;
 
-// ---------- Shadows (boxShadow strings — paste from Figma) ----------
+// ---------- Shadows (boxShadow strings, paste from Figma) ----------
 const shadows = {
   none: "0 0 0 rgba(0,0,0,0)",
   sm: "0 1px 2px rgba(0,0,0,0.05)",
@@ -304,13 +304,13 @@ export { scale, SCREEN_HEIGHT, SCREEN_WIDTH, themes };
 
 ## What to customize
 
-- **Colors** — replace `primary`, `secondary`, semantic colors with your brand palette. Keep the **shape** (numeric stops `50–500`, `{ DEFAULT, light }` for semantic colors) so components stay portable.
-- **Typography fonts** — swap `OpenRunde-*` for whatever you've loaded. Keep variant names (`h1, paragraphM, ...`).
-- **Dark theme** — only override the keys that genuinely differ. Spreading `baseTheme` and overriding a few nested objects is the cleanest pattern.
-- **Spacing/radius/fontSize scales** — usually leave alone. They're already exhaustive enough that designers can pick a token rather than ask for a custom value.
+- **Colors**: replace `primary`, `secondary`, semantic colors with your brand palette. Keep the **shape** (numeric stops `50–500`, `{ DEFAULT, light }` for semantic colors) so components stay portable.
+- **Typography fonts**: swap `OpenRunde-*` for whatever you've loaded. Keep variant names (`h1, paragraphM, ...`).
+- **Dark theme**: only override the keys that genuinely differ. Spreading `baseTheme` and overriding a few nested objects is the cleanest pattern.
+- **Spacing/radius/fontSize scales**: usually leave alone. They're already exhaustive enough that designers can pick a token rather than ask for a custom value.
 
 ## What not to change
 
-- **Don't drop `as unknown as N`** — you lose literal types and the `theme.spacing[4]: 16` narrowing.
-- **Don't drop `moderateScale`** — without scaling, your phone-tablet layouts will diverge in painful ways.
-- **Don't add a per-component `theme` argument** — the function form `(theme, rt) =>` is the only argument shape Babel can rewrite reactively.
+- **Don't drop `as unknown as N`**: you lose literal types and the `theme.spacing[4]: 16` narrowing.
+- **Don't drop `moderateScale`**: without scaling, your phone-tablet layouts will diverge in painful ways.
+- **Don't add a per-component `theme` argument**: the function form `(theme, rt) =>` is the only argument shape Babel can rewrite reactively.
