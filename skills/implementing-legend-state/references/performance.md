@@ -6,7 +6,7 @@ to debug when a component renders more than you expect.
 ## Foundations (in `reactivity.md`)
 
 The tracking model (what `get()`/looping/`peek()` do) and batching (`batch`, `beginBatch`/`endBatch`) are the
-basis of every optimization here — see `reactivity.md`. The one-liners you need most often:
+basis of every optimization here (see `reactivity.md`). The one-liners you need most often:
 
 - Read the **narrowest** node, in an observing context, with `get()`; use `peek()` to read without subscribing.
 - Wrap bulk writes in `batch(() => ...)` so observers and persistence fire once, not per change.
@@ -41,12 +41,12 @@ every element (which would make the parent observe the whole list):
 ```tsx
 state$.arr.map(item$ => <Row key={item$.peek().id} item$={item$} />)
 ```
-Let the child `useValue(item$.field)` — don't read item fields in the parent.
+Let the child `useValue(item$.field)`; don't read item fields in the parent.
 
 ### `optimized` prop
 `<For each={list$} item={Row} optimized />` reuses React nodes instead of replacing them when the array length is
 unchanged (sorts, swaps, replace-all). Huge win for reorderable lists. Caveat: because it reuses nodes, it can
-misbehave with some enter/exit animations or external DOM mutation — don't use it there.
+misbehave with some enter/exit animations or external DOM mutation, so don't use it there.
 
 ## Keep parents render-once
 
@@ -61,10 +61,10 @@ misbehave with some enter/exit animations or external DOM mutation — don't use
 
 From `@legendapp/state/trace`, called inside a component (each accepts an optional name):
 
-- `useTraceListeners()` — logs every observable the component currently tracks.
-- `useTraceUpdates()` — logs which observable change caused each render (`from` → `to`).
-- `useVerifyNotTracking()` — `console.error` if the component tracks anything (use to confirm a parent is render-once).
-- `useVerifyOneRender()` — `console.error` if it renders more than once.
+- `useTraceListeners()`: logs every observable the component currently tracks.
+- `useTraceUpdates()`: logs which observable change caused each render (`from` → `to`).
+- `useVerifyNotTracking()`: `console.error` if the component tracks anything (use to confirm a parent is render-once).
+- `useVerifyOneRender()`: `console.error` if it renders more than once.
 
 To hunt a noisy observable, attach a listener with a breakpoint:
 ```ts

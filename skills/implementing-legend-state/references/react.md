@@ -6,7 +6,7 @@ back to component-level re-rendering.
 
 ## Reading state
 
-### `useValue` — the default
+### `useValue`: the default
 Computes a value, tracks every observable read while running, re-renders only when the result changes. Takes an
 observable or a selector function.
 
@@ -22,10 +22,10 @@ Suspense: pass `{ suspense: true }` when the observable holds a Promise and you 
 > `useValue` was previously `useSelector` / `use$`. Both still work for now but use `useValue`. `use$` in
 > particular is not React-Compiler-safe.
 
-### `observer` — optional optimization, not the default
+### `observer`: optional optimization, not the default
 `observer` wraps a component (via a Proxy, ~free) and merges all its `useValue` calls into a single hook. Use it
 when a component calls `useValue` many times or consumes observables conditionally. Do **not** go back to the
-v2 habit of calling `state$.x.get()` directly inside `observer` — that's discouraged in v3 and breaks under
+v2 habit of calling `state$.x.get()` directly inside `observer`, which is discouraged in v3 and breaks under
 React Compiler. Keep using `useValue`; `observer` just collapses the hooks.
 
 ```tsx
@@ -54,7 +54,7 @@ Hook forms of `when` (see Reactivity in `observables.md`/sync docs).
 ## Local state hooks
 
 ### `useObservable`
-Creates an observable scoped to the component. Not auto-tracked — read it with `useValue` like any other. A
+Creates an observable scoped to the component. Not auto-tracked; read it with `useValue` like any other. A
 function arg makes it a computed.
 
 ```tsx
@@ -67,7 +67,7 @@ const fullName$ = useObservable(() => `${state$.first.get()} ${state$.last.get()
 
 ## Context (the good kind)
 
-Put an observable in Context. The observable object is stable, so `useContext` never causes a re-render — only
+Put an observable in Context. The observable object is stable, so `useContext` never causes a re-render; only
 the nodes you `useValue`/`Memo` update. This avoids the usual "context change re-renders all consumers" problem.
 
 ```tsx
@@ -86,17 +86,17 @@ function Sidebar() {
 
 ## Fine-grained reactivity components
 
-### `Memo` — render a value/selector that updates itself
+### `Memo`: render a value/selector that updates itself
 The children re-render themselves on change; the parent does not. This is the most basic fine-grained tool.
 ```tsx
 <Memo>{count$}</Memo>
 <Memo>{() => <Text>Count: {count$.get()}</Text>}</Memo>
 ```
 
-### `Computed` — extract children into their own tracking context
+### `Computed`: extract children into their own tracking context
 Like `Memo`, but it *will* re-render when the parent renders (use when children also depend on parent locals).
 
-### `Show` — conditional without re-rendering the parent
+### `Show`: conditional without re-rendering the parent
 ```tsx
 <Show if={state$.visible} else={() => <Empty />} wrap={AnimatePresence}>
   {() => <Modal />}
@@ -105,14 +105,14 @@ Like `Memo`, but it *will* re-render when the parent renders (use when children 
 Props: `if` (observable/selector), `ifReady` (skips empty `{}`/`[]`), `else`, `wrap`, `children` (element or
 function of the value).
 
-### `Switch` — pick one branch by value
+### `Switch`: pick one branch by value
 ```tsx
 <Switch value={state$.index}>
   {{ 0: () => <Tab1 />, 1: () => <Tab2 />, default: () => <Err /> }}
 </Switch>
 ```
 
-### `For` — optimized list rendering
+### `For`: optimized list rendering
 Extracts each row into its own tracking context so the parent doesn't re-render. The row component receives an
 `item$` observable. See `performance.md` for the `optimized` prop and array `id` requirements.
 ```tsx
@@ -148,15 +148,15 @@ import { $React } from '@legendapp/state/react-web'
 ```
 
 ### Make your own reactive components
-- `reactive(Component)` — wrap any component to add `$`-prefixed reactive props (great for animating
+- `reactive(Component)`: wrap any component to add `$`-prefixed reactive props (great for animating
   `framer-motion` without re-rendering: `const $MotionDiv = reactive(motion.div)`).
-- `reactiveObserver(Component)` — `reactive` + `observer` in one.
-- `reactiveComponents(namespace)` — wrap a whole namespace (e.g. all of `motion`).
+- `reactiveObserver(Component)`: `reactive` + `observer` in one.
+- `reactiveComponents(namespace)`: wrap a whole namespace (e.g. all of `motion`).
 
 ## Misc hooks
 
 `useMount` / `useUnmount` / `useEffectOnce` (dev-safe single run), `useIsMounted` (observable bool),
-`usePauseProvider` (Context whose `paused$` halts all observable-driven rendering underneath — handy for
+`usePauseProvider` (Context whose `paused$` halts all observable-driven rendering underneath, handy for
 hidden/inactive screens in RN). Web-only: `useHover`, `useMeasure`. `createObservableHook` adapts an existing
 `useState`/`useReducer` hook to return an observable.
 

@@ -1,7 +1,7 @@
 # Observables: the core API
 
 An observable wraps any data (primitive, deep object, array, function) in a Proxy that exposes
-`get`/`set`/`peek`/etc. on every node. It never mutates your underlying data — each node is a path into the
+`get`/`set`/`peek`/etc. on every node. It never mutates your underlying data; each node is a path into the
 raw object. This is why you can read/write deeply nested or currently-`undefined` paths safely.
 
 ## Creating
@@ -77,7 +77,7 @@ state$.delete()       // sets whole thing to undefined
 Booleans: `state$.isReady.toggle()`.
 
 ### `onChange()`
-Listen to any change within a node (fires recursively up the tree — use as narrowly as possible).
+Listen to any change within a node (fires recursively up the tree, so use it as narrowly as possible).
 ```ts
 const dispose = state$.text.onChange(({ value, getPrevious, changes }) => { /* ... */ })
 ```
@@ -87,14 +87,14 @@ const dispose = state$.text.onChange(({ value, getPrevious, changes }) => { /* .
 Direct assignment is intentionally blocked for objects to prevent accidental mutation that doesn't notify:
 
 ```ts
-state$.text = 'hi'      // ❌ throws (use .set)  — primitives may assign in some modes but prefer .set
+state$.text = 'hi'      // ❌ throws (use .set); primitives may assign in some modes but prefer .set
 state$.obj = {}         // ❌ throws
 state$ = {}             // ❌ would destroy the observable
 state$.set({ ... })     // ✅
 state$.assign({ ... })  // ✅
 ```
 
-**Never mutate the raw value and set it back** — that mutates the observable's own data, so setting it back is a
+**Never mutate the raw value and set it back**: that mutates the observable's own data, so setting it back is a
 no-op:
 ```ts
 // ❌ no notification
@@ -103,7 +103,7 @@ const v = state$.get(); v.key = 'new'; state$.set(v)
 state$.key.set('new')
 ```
 
-**Don't clone to update** (the React reflex). Operate on the observable directly — see Arrays below.
+**Don't clone to update** (the React reflex). Operate on the observable directly (see Arrays below).
 
 If you really want `=` assignment, opt in with `enable$GetSet()` (then `state$.x.$` reads/writes) or
 `enable_PeekAssign()` (then `state$.x._` reads/writes without notifying). See `migration-and-gotchas.md`/configuring.
@@ -111,7 +111,7 @@ If you really want `=` assignment, opt in with `enable$GetSet()` (then `state$.x
 ## Computed observables (functions)
 
 Any function in an observable is a lazy computed. It becomes a computed observable the first time you `get()`/`peek()`
-it, then recomputes when its tracked dependencies change. **It only recomputes while being observed** — if a computed
+it, then recomputes when its tracked dependencies change. **It only recomputes while being observed**: if a computed
 had side effects in v2 that relied on always running, that changes in v3.
 
 ```ts
@@ -212,7 +212,7 @@ onClosed$.fire()
 
 ## Store organization
 
-Both are first-class — choose one per project:
+Both are first-class; choose one per project:
 
 - **One global store**: a single `observable({...})` with nested domains (`UI`, `settings`, `todos`).
 - **Many atoms**: `export const theme$ = observable('light')` per concern, grouped by file.

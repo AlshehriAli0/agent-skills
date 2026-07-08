@@ -15,7 +15,7 @@ const Component = observer(function () { const v = state$.value.get(); return <d
 const Component = () => { const v = useValue(state$.value); return <div>{v}</div> }
 ```
 
-`observer` is now an optional optimization that merges many `useValue` calls into one hook — keep using it for
+`observer` is now an optional optimization that merges many `useValue` calls into one hook; keep using it for
 heavy components, but still read with `useValue` inside it. `useSelector` → renamed `useValue`. `use$` →
 `useValue` (and `use$` isn't Compiler-safe). `enableReactTracking({ auto: true })` is deprecated and broken in
 React 19.
@@ -41,7 +41,7 @@ React 19.
 | `trackHistory` from core | `@legendapp/state/helpers/trackHistory` |
 
 Other v3 behavior changes to watch for:
-- Computeds only recompute **while observed** — a computed relied upon for side effects in v2 may not run in v3.
+- Computeds only recompute **while observed**: a computed relied upon for side effects in v2 may not run in v3.
 - Setting an object to an equal value no longer notifies (deep equality).
 - Types were rewritten; some type import names changed (Promises/nullability fixed).
 
@@ -67,7 +67,7 @@ const store$ = observable({
 })
 const count = useValue(store$.count)   // narrower subscription, no selector boilerplate
 ```
-Notes: no `set`/`get` callbacks — mutate the observable directly inside actions. No selector function needed for
+Notes: no `set`/`get` callbacks; mutate the observable directly inside actions. No selector function needed for
 basic reads (`useValue(store$.count)`); use a selector only for derived values. Persistence replaces the Zustand
 `persist` middleware with `syncObservable(... persist ...)`. Derived data that Zustand computes in selectors
 becomes a computed function in the observable.
@@ -75,28 +75,28 @@ becomes a computed function in the observable.
 ## Migrating from raw TanStack Query
 
 Two paths:
-1. **Bridge** with `syncedQuery` / `useObservableSyncedQuery` — keep your `queryFn`/`mutationFn`, but the result
+1. **Bridge** with `syncedQuery` / `useObservableSyncedQuery`: keep your `queryFn`/`mutationFn`, but the result
    is an observable you `useValue`, and mutations are just `set()`s. Good for incremental migration.
-2. **Replace** with `syncedCrud`/`syncedFetch`/`syncedSupabase` co-located on the observable — components stop
+2. **Replace** with `syncedCrud`/`syncedFetch`/`syncedSupabase` co-located on the observable, so components stop
    doing any fetching/mutating and just `get()`/`set()`. This is the end state for "primary state driver."
 
 Server cache, optimistic updates, retries, and persistence all move into the observable definition, so the
 "server state vs client state" split largely disappears.
 
-## Top mistakes the auditor looks for (and why)
+## Top mistakes (and why)
 
-- **`observer` with `.get()` inside** — discouraged in v3, breaks under React Compiler. Use `useValue`.
-- **`useSelector` / `use$`** — old names; `use$` isn't Compiler-safe. Use `useValue`.
-- **`computed(`** — not the v3 way; use a function in the observable.
-- **`persistObservable(`** — v2 API; use `syncObservable` + `persist`.
-- **`const v = state$.get(); v.x = ...; state$.set(v)`** — mutates the raw data then no-op sets; won't notify.
+- **`observer` with `.get()` inside**: discouraged in v3, breaks under React Compiler. Use `useValue`.
+- **`useSelector` / `use$`**: old names; `use$` isn't Compiler-safe. Use `useValue`.
+- **`computed(`**: not the v3 way; use a function in the observable.
+- **`persistObservable(`**: v2 API; use `syncObservable` + `persist`.
+- **`const v = state$.get(); v.x = ...; state$.set(v)`**: mutates the raw data then no-op sets; won't notify.
   Use `state$.x.set(...)`.
-- **`state$.set([...state$.get(), item])` / spread-then-set** — needless clone; use `push`/targeted `set`.
-- **`item$.text.get()` in a parent `map` for keys** — tracks every element; use `peek()` for keys and let rows
+- **`state$.set([...state$.get(), item])` / spread-then-set**: needless clone; use `push`/targeted `set`.
+- **`item$.text.get()` in a parent `map` for keys**: tracks every element; use `peek()` for keys and let rows
   read their own fields.
-- **Missing `id` on array objects** — breaks `For` optimization and stable row identity; add `id` or
+- **Missing `id` on array objects**: breaks `For` optimization and stable row identity; add `id` or
   `${arr}_keyExtractor`.
-- **`<For each={...} item={Row} optimized />` with enter/exit animations** — node reuse can fight the animation;
+- **`<For each={...} item={Row} optimized />` with enter/exit animations**: node reuse can fight the animation;
   drop `optimized` there.
 
 ## Configuring opt-ins

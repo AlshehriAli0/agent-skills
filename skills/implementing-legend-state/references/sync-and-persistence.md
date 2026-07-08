@@ -2,7 +2,7 @@
 
 Legend-State's sync engine is built for local-first apps: changes apply optimistically to local state, persist
 immediately, and retry remote saves until they land (even across app restarts). You set it up *on the observable*,
-so UI code only ever `get()`/`set()` — there's no fetch/mutation code in components. This is what lets Legend-State
+so UI code only ever `get()`/`set()`; there's no fetch/mutation code in components. This is what lets Legend-State
 absorb most of what you'd otherwise use TanStack Query for.
 
 Everything is built on `synced`. The plugins (`syncedCrud`, `syncedSupabase`, `syncedQuery`, `syncedFetch`,
@@ -83,7 +83,7 @@ const state$ = observable(synced({
 `get()` is an observing context, which makes paging trivial: read a page observable inside `get`, then bump it
 and use `mode: 'append'`.
 
-## `syncState` — status & control
+## `syncState`: status & control
 
 Every synced/async observable has a `syncState` companion observable.
 ```ts
@@ -125,12 +125,12 @@ const profiles$ = observable(syncedCrud({
 ```
 A new local row uses a locally generated `id` and gets server `createdAt`/`updatedAt` merged back after save (set
 those to `undefined` on create). `changesSince: 'last-sync'` greatly reduces bandwidth by listing only rows changed
-since the last sync — it requires a server-managed `updatedAt` and that deletes are discoverable (soft deletes or a
+since the last sync; it requires a server-managed `updatedAt` and that deletes are discoverable (soft deletes or a
 list that includes deleted rows). See `assets/synced-crud.template.ts`.
 
 ## Backend plugins (built on CRUD)
 
-### Supabase — `syncedSupabase`
+### Supabase: `syncedSupabase`
 ```ts
 import { configureSyncedSupabase, syncedSupabase } from '@legendapp/state/sync-plugins/supabase'
 configureSyncedSupabase({ generateId: () => crypto.randomUUID() })
@@ -149,7 +149,7 @@ const messages$ = observable(syncedSupabase({
 `as`: `object` | `Map` | `value` (no `array`). Diff-sync needs the `created_at`/`updated_at` columns + trigger and
 soft deletes (SQL snippet is in the Supabase docs).
 
-### TanStack Query — `syncedQuery` / `useObservableSyncedQuery`
+### TanStack Query: `syncedQuery` / `useObservableSyncedQuery`
 Use when integrating with or migrating off an existing Query setup. Same query/mutation params as React Query, but
 it updates an observable instead of re-rendering, and the `queryKey` can be a function of observables (auto-refetch
 on change → easy paging).
@@ -161,11 +161,11 @@ const state$ = useObservableSyncedQuery({
 // outside React: syncedQuery({ queryClient, query, mutation })
 ```
 
-### fetch — `syncedFetch`
+### fetch: `syncedFetch`
 Thin wrapper to cut boilerplate: `get`/`set` URLs (URL can be a selector → refetch on change), `getInit`/`setInit`,
 `valueType`, `onSaved`.
 
-### Keel — `syncedKeel`
+### Keel: `syncedKeel`
 Pass the generated `queries`/`mutations`; fully typed. Needs `id` in create actions and all-optional changeable
 fields in update actions; `ksuid` for local ids. See the Keel docs for model requirements and audit-log deletes.
 

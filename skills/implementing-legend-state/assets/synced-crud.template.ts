@@ -2,7 +2,7 @@
  * Local-first CRUD-synced collection (Legend-State v3).
  *
  * A factory that wires a backend's list/create/update/delete into an observable keyed by id.
- * Components never fetch or mutate over the network — they just get()/set() the observable.
+ * Components never fetch or mutate over the network; they just get()/set() the observable.
  *
  * Replace the `api` calls with your backend. This pattern is what replaces most manual TanStack Query usage
  * when Legend-State is the primary state driver.

@@ -11,14 +11,14 @@ change. Observing contexts are: computeds, `observe`, `when`, synced `get` funct
 
 **Tracks** (subscribes):
 - `obs.get()`
-- array looping methods — `map`, `filter`, `find`, `findIndex`, `forEach`, `some`, `every`, `includes`, `join` (shallow)
+- array looping methods: `map`, `filter`, `find`, `findIndex`, `forEach`, `some`, `every`, `includes`, `join` (shallow)
 - `arr.length`, `Object.keys(obs)`, `Object.values(obs)` (shallow)
 
 **Does not track:**
 - accessing a node without reading it: `state$.settings`
 - `obs.peek()`
 
-"Shallow" means it fires only when keys are added/removed, not when existing children change — this is what lets a
+"Shallow" means it fires only when keys are added/removed, not when existing children change; this is what lets a
 list parent skip re-rendering while individual rows update themselves.
 
 ## `observe`

@@ -3,10 +3,10 @@
 Helper functions and ready-made observables. Each lives at its own import path so it only adds to your bundle if
 used. (React-specific hooks like `useHover`/`useMeasure`/`useMount` are in `react.md`.)
 
-## ObservableHint — performance hints
+## ObservableHint: performance hints
 
 ### `ObservableHint.opaque`
-Marks an object as opaque so it's treated like a primitive — its inner properties are not made observable. Use for
+Marks an object as opaque so it's treated like a primitive, so its inner properties are not made observable. Use for
 DOM/React elements or large objects you don't want to track into.
 
 ```ts
@@ -76,7 +76,7 @@ pageHash.set('value=test') // location.hash === '#value=test'
 ```
 
 ### `pageHashParams` (web)
-Two-way bound to individual hash params — set/get/delete keys and it keeps `location.hash` in sync. Pairs well with
+Two-way bound to individual hash params: set/get/delete keys and it keeps `location.hash` in sync. Pairs well with
 `Switch` for a tiny router (see `recipes.md`).
 
 ```ts

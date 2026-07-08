@@ -27,7 +27,7 @@ export const persisted = configureSynced({
     }),
   },
 })
-// IndexedDB is async — gate first read:
+// IndexedDB is async; gate first read:
 // import { syncState, when } from '@legendapp/state'
 // await when(syncState(store$).isPersistLoaded)
 */

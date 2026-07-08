@@ -1,15 +1,13 @@
 ---
 name: implementing-legend-state
 description: >-
-  Implement Legend-State (v3) as the primary state management layer in a React or React Native app.
-  Use this whenever the task involves Legend-State or @legendapp/state, OR whenever you are adding,
-  refactoring, or designing state management and the project uses (or is being moved to) Legend-State:
-  creating observables, wiring components with useValue, building global stores, computed/derived state,
-  fine-grained reactivity (For/Show/Switch/Memo), local persistence (MMKV, AsyncStorage, localStorage,
-  IndexedDB, expo-sqlite), or remote sync (synced, syncedCrud, Supabase, TanStack Query, fetch, Keel).
-  Also use it when migrating from Zustand, Redux, Jotai, Recoil, or plain TanStack Query to Legend-State,
-  or when reviewing/fixing existing Legend-State code. v3 changed the core React pattern, so do not rely
-  on memory of older Legend-State APIs — follow this skill.
+  Implement Legend-State (v3), the signal-based @legendapp/state library, as the primary state layer in a
+  React or React Native app. Use when a task names Legend-State or @legendapp/state; when adding, refactoring,
+  or designing state management in a project that uses (or is moving to) Legend-State; when migrating from
+  Zustand, Redux, Jotai, Recoil, or plain TanStack Query; or when reviewing or fixing existing Legend-State
+  code. Covers observables, useValue, global stores, computed/derived state, fine-grained reactivity
+  (For/Show/Switch/Memo), local persistence (MMKV, AsyncStorage, localStorage, IndexedDB, expo-sqlite), and
+  remote sync (synced, syncedCrud, Supabase, TanStack Query, fetch, Keel).
 ---
 
 # Implementing Legend-State (v3)
@@ -19,18 +17,19 @@ change it with `set()`, and components re-render only on the exact values they r
 state, global state, persistence, and remote sync in one model, so it can be a project's *primary* state
 driver rather than one of several libraries.
 
-This skill encodes the v3 way of doing things. The most common failure mode is writing v2-era code from
-memory (`observer` + `.get()`, `useSelector`, `computed`, `persistObservable`). v3 changed these. When in
-doubt, trust this skill and the reference files over prior knowledge.
+This skill encodes the v3 way. The most common failure is a **v2 reflex**: reaching from memory for
+`observer` + `.get()`, `useSelector`, `computed`, or `persistObservable`. v3 replaced all four, and picking
+the wrong one compiles but silently breaks reactivity. Trust this skill and the reference files over prior
+knowledge.
 
 ## Before you write code
 
 1. **Confirm the version.** v3 is currently published under the `@beta` tag (`npm install @legendapp/state@beta`).
-   If the project already depends on `@legendapp/state`, check `package.json` — if it's `2.x`, you are in v2
-   and should read `references/migration-and-gotchas.md` before changing anything. Quickly verify the current
-   latest/beta if network access is available; don't hardcode a version number you're unsure about.
+   If the project already depends on `@legendapp/state`, check `package.json`: a `2.x` version means v2, so read
+   `references/migration-and-gotchas.md` before changing anything. Verify the current beta from npm when you have
+   network access rather than assuming a version number.
 2. **Read the reference file(s) for the task.** This SKILL.md is a map. Load the specific reference below for
-   the area you're working in — it has the full API surface and worked examples.
+   the area you're working in; it has the full API surface and worked examples.
 3. **Match the platform.** Reactive component imports differ: web uses `@legendapp/state/react-web` (`$React.div`),
    React Native uses `@legendapp/state/react-native` (`$TextInput`, `$View`, `$Text`). Persistence plugins differ too.
 
@@ -47,14 +46,9 @@ doubt, trust this skill and the reference files over prior knowledge.
 | Worked patterns: persisted store, auto-saving form, validation, list, animation, router | `references/recipes.md` |
 | Migrating from v2, Zustand, Redux, or raw TanStack Query; or fixing wrong/old code | `references/migration-and-gotchas.md` |
 
-Copy-paste starting points live in `assets/` (store, persistence setup, CRUD factory). An auditing script that
-flags deprecated patterns lives in `scripts/audit_legend_state.py` — run it after a migration or before review
-(usage at the bottom of this file).
+Copy-paste starting points live in `assets/` (store, persistence setup, CRUD factory).
 
 ## The core rules (the parts most likely to be done wrong)
-
-These are short because the reference files carry the detail. They're here because getting them wrong produces
-code that compiles but silently breaks reactivity.
 
 ### 1. Read with `useValue`, not `observer` + `.get()`
 
@@ -71,7 +65,7 @@ const isDark = useValue(() => settings$.theme.get() === 'dark') // re-renders wh
 `observer` still exists, but in v3 it is an *optional optimization* (it merges many `useValue` calls into one
 hook) and is no longer the recommended default. The old pattern of `observer(() => { const x = state$.x.get() })`
 is discouraged because it is incompatible with React Compiler. `useSelector` and `use$` are former names for
-`useValue` — use `useValue`. Details and the `observer` optimization case: `references/react.md`.
+`useValue`; use `useValue`. Details and the `observer` optimization case: `references/react.md`.
 
 ### 2. Name observables with a `$` suffix
 
@@ -91,7 +85,7 @@ state$.obj = {}                       // ❌ throws / no notification
 
 ### 4. Computeds are just functions inside the observable
 
-There is no separate `computed` in v3 — a function is a lazy computed that recomputes when the observables it
+There is no separate `computed` in v3; a function is a lazy computed that recomputes when the observables it
 reads change. It only recomputes while it's being observed.
 
 ```ts
@@ -102,7 +96,7 @@ const state$ = observable({
 })
 ```
 
-### 5. Don't clone to update — mutate the observable directly
+### 5. Don't clone to update; mutate the observable directly
 
 Legend-State is mutable by design (immutability is slower and unnecessary here). The React habit of spreading a
 new object/array is an anti-pattern: do the targeted operation on the observable.
@@ -116,7 +110,7 @@ list$[i].delete()           // ✅  removes the element
 ### 6. `get()` tracks, `peek()` doesn't
 
 Inside an observing context (`useValue`, `observe`, a computed, a synced `get`), `get()` subscribes to changes.
-Use `peek()` to read without subscribing — important when reading a value you don't want to re-render on, and
+Use `peek()` to read without subscribing; important when reading a value you don't want to re-render on, and
 when generating keys while mapping arrays.
 
 ### 7. Arrays of objects need a stable `id`, and render with `For`
@@ -172,7 +166,7 @@ export function TodoList() {
 When the goal is to make Legend-State the main state layer (replacing Zustand/Redux and absorbing server-cache
 duties), apply these defaults:
 
-- **One source of truth per domain.** Either a single large `store$` or several feature atoms — both are fine;
+- **One source of truth per domain.** Either a single large `store$` or several feature atoms (both are fine);
   pick one convention per project and keep it (`references/observables.md` and `assets/store.template.ts`).
 - **Co-locate sync with the data, not the UI.** Define `synced`/`syncedCrud` in the observable so components only
   ever `get()`/`set()`; there's no fetching or mutation code in components. This is what replaces most manual
@@ -182,14 +176,8 @@ duties), apply these defaults:
 - **Persist by default for local-first.** Set a global persist plugin with `configureSynced`, then name each
   store (`assets/persist.native.template.ts` / `assets/persist.web.template.ts`).
 
-## Auditing existing code
+## Verifying existing or migrated code
 
-After writing or migrating code, run the auditor to catch deprecated/anti-pattern usage:
-
-```bash
-python scripts/audit_legend_state.py <path-to-src>
-```
-
-It reports `file:line` for things like `useSelector`/`use$`, `observer` with `.get()`, `computed(`,
-`persistObservable(`, direct-assignment-then-`set`, and clone-then-`set`. It's a grep-based heuristic, so treat
-hits as "review this," not absolute errors. Reasoning behind each flag is in `references/migration-and-gotchas.md`.
+Check the code against the common-mistake list in `references/migration-and-gotchas.md`. The work is done when
+every deprecated pattern it names (`useSelector`/`use$`, `observer` + `.get()`, `computed(`, `persistObservable(`,
+direct-assignment-then-`set`, clone-then-`set`) is either fixed or deliberately kept for a reason you can name.
