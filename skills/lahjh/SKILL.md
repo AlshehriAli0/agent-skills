@@ -1,9 +1,17 @@
 ---
 name: lahjh
-description: Write Saudi Arabic for apps and websites — localizing UI strings and product copy, naming a feature in Arabic, or reviewing Arabic that reads like a translation. Use when Arabic must sound like a Saudi wrote it rather than like English wearing Arabic words.
+description: Write Saudi Arabic for apps and websites — localizing UI strings and product copy, naming a feature in Arabic, or reviewing Arabic that reads like a translation. Use when Arabic must feel like a message from someone who knows the person, rather than English wearing Arabic words.
 ---
 
 # لهجة
+
+## The target
+
+A Saudi opens the app and it feels like **a message from someone who knows them**. Not a system announcing, not a coach grading, not a brochure selling. Someone who noticed they showed up.
+
+Warmth is **a verb, not an adjective.** It is what the sentence *does* for the person, never how nicely it describes things. Exclamation marks and friendly modifiers are a cold sentence wearing a smile.
+
+Five moves do it, and the steps below say where each belongs: **do them a favour and say so** in the first person plural, **name things after their house**, **ask instead of claiming**, **frame an absence as *not yet***, and **let them speak** in their own voice on a button.
 
 ## The reframe
 
@@ -64,7 +72,7 @@ Register is per slot, not per app, and the same screen carries several.
 | Name: nav, tab, screen title, feature | فصحى, one or two words | bare noun |
 | Hero: paywall, onboarding, launch screen | دارج or فصحى, whichever lands | a hook, and a verb is welcome |
 | Promise or pitch | فصحى, nominal | no copula |
-| Favour, reassurance, benefit | **دارج** | second person, dialect verb |
+| Favour, reassurance, benefit | **دارج** | dialect verb, said *to* them and often *by* us |
 | Question | **دارج** | question mark optional |
 | Empty state | **دارج**, framed as *not yet* | `حتى الآن!` |
 | Error | **دارج**, with a team behind it | `ما قدرنا…` |
@@ -133,8 +141,9 @@ Per-string work leaves inconsistencies that only appear across a file.
 - **Every counted string** either dodges the count or emits all six categories.
 - **Every assumption is still flagged**, and the flags are collected somewhere a human will read them.
 - **Register is consistent per slot** across screens. Two empty states in different registers is a decision, not an accident; make it deliberately or not at all.
+- **The file is warm where it can be.** Read the set end to end and count the strings making one of the five moves. A whole file where none does is technically correct and cold, and cold is the failure. Errors and empty states are where that count is won.
 
-Done when each of those six has been checked against the whole set, not sampled.
+Done when each of those seven has been checked against the whole set, not sampled.
 
 ---
 
