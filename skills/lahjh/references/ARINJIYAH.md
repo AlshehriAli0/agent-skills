@@ -10,6 +10,8 @@ The sin is **إماتة**, killing a live Arabic structure by importing a substi
 
 ---
 
+The examples below diagnose structure, not dialect quality. They are not global word bans or approval of any replacement.
+
 ## Three diagnostics
 
 ### The round-trip
@@ -18,7 +20,7 @@ Run the gate from the skill. What this adds: the gap you are looking for is the 
 
 ### The one-word test
 
-Arabic names one thing with one word. **A multi-word name is عرنجية until proven otherwise.**
+Arabic often names one thing with one word. Use the one-word test to spot padding, then check whether a multi-word name is required by the product's meaning, identity, or usage.
 
 | عربي | عرنجي |
 |---|---|
@@ -27,7 +29,7 @@ Arabic names one thing with one word. **A multi-word name is عرنجية until 
 | فرو / جلد | جلد بفرو / جلد دون فرو |
 | حمام | دورة مياه |
 
-The principle underneath, from الجاحظ: البلاغة is **إجاعة اللفظ وإشباع المعنى** — starve the wording, satiate the meaning. عرنجية is the inverse: تطويل زائد، وألفاظ ميتة، وحشو متكرر.
+The principle underneath, from الجاحظ: البلاغة is **إجاعة اللفظ وإشباع المعنى** — starve the wording, satiate the meaning. عرنجية is the inverse: تطويل زائد، وألفاظ ميتة، وحشو متكرر. Shorter is a diagnostic target, not a reason to remove meaning.
 
 ### The passive test
 
@@ -62,7 +64,7 @@ The internal passive is not archaic. Najdi speech keeps it alive — `المال
 | Dying | Import |
 |---|---|
 | النعت السببي: الطهور ماؤه | gone; no English host |
-| إلا / إنما for exclusivity | فقط everywhere |
+| إلا / إنما for exclusivity | `فقط` copied into every context |
 | a plain verb: قسا قلبه | كان وأخواتها: أصبح قلبه قاسيًا |
 | الأجمل / الأعلم | الأكثر جمالًا / الأكثر علمًا |
 | نوّمه / بكّاه | جعله ينام / جعله يبكي |

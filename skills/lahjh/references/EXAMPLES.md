@@ -1,6 +1,6 @@
 # Calibration
 
-Real strings by slot, each with the move behind it. For a canonical string, taking the answer here is consistency. For anything else, take the move and write what your screen needs.
+Real strings by slot, each with the context and structural move behind it. Use them to generate candidates and inspect shape. They are illustrative evidence, not approved wording or a global vocabulary list; the project feedback ledger decides what ships.
 
 Everything here was authored in Arabic by ثمانية. Nothing here is a translation.
 
@@ -10,7 +10,7 @@ Everything here was authored in Arabic by ثمانية. Nothing here is a transl
 
 > سجّل دخولك
 
-Imperative plus possessive suffix. The مصدر form (`تسجيل الدخول`) and the scaffolded form (`قم بتسجيل الدخول`) both name the *concept*; this names the *act* and hands it to the person. Every other Saudi app in the market ships one of the other two.
+Imperative plus possessive suffix. The مصدر form (`تسجيل الدخول`) and the scaffolded form (`قم بتسجيل الدخول`) both name the *concept*; this names the *act* and hands it to the person.
 
 ---
 
@@ -22,9 +22,9 @@ Imperative plus possessive suffix. The مصدر form (`تسجيل الدخول`)
 > لا توجد قوائم تتابعها… حتى الآن!
 > تصفح توصيات الفريق، وتابع قوائم من مئات الحلقات في مجالات تهمك.
 
-Four moves:
+Useful patterns:
 
-- **Dialect reaches empty states.** `ماعندك` written joined, exactly as it is typed in a message. Empty states are not system messages, they are someone telling you the shelf is bare.
+- **Dialect can reach empty states.** `ماعندك` written joined, exactly as it is typed in a message. Empty states are not always system messages, but the screen still has to establish the product's chosen register.
 - **Framed as *not yet*.** `للآن!` and `حتى الآن!` plus the exclamation turn an absence into a pending state. The screen stops being a dead end.
 - **The two examples take opposite negations** — dialect `ماعندك` on one screen, فصحى `لا توجد` on the next. The dial moves per screen. The shared device is the *not yet*.
 - **Register mixes mid-string.** Dialect verb `وصلتك`, فصحى continuation `ستظهر هنا`.
@@ -37,7 +37,7 @@ Note `مجالات تهمك` with the relative pronoun elided, and the body bein
 
 > خليني أشوف
 
-**A CTA can speak in the person's own voice.** First person, dialect, on a paywall. Not `عرض التفاصيل`, not `اعرف المزيد`, not an imperative aimed at the reader. This is the single strongest differentiator available, and no style guide will ever produce it.
+**A CTA can speak in the person's own voice.** First person, dialect, on a paywall. This is one useful candidate shape; use it only when the screen and product voice support it.
 
 > جرّب 7 أيام مجانًا
 
@@ -65,7 +65,7 @@ Imperative, number, one adverb. Four words for what English spends eight on.
 > تابع أكثر من مباراة على شاشة واحدة.
 > أدنى حد من الإعلانات.
 
-Every item is either an imperative or a bare superlative. None is a مصدر. Each ends in a period. `في الوقت نفسه`, never `في نفس الوقت`.
+These examples use imperatives and bare superlatives rather than مصدر chains. In this product, `في الوقت نفسه` fits; choose the natural equivalent supported by the project's own evidence.
 
 ---
 
@@ -73,41 +73,39 @@ Every item is either an imperative or a bare superlative. None is a مصدر. Ea
 
 > استمرارك يعني موافقتك على الأحكام والشروط وسياسة الخصوصية.
 
-A nominal sentence: your continuing means your agreeing. The standard localized version of this string runs half again as long and opens with a calqued `بالمتابعة، فإنك توافق على…`. **Legal text is where translated Arabic bloats worst and where tightening pays most**, because the meaning is fixed and only the scaffolding varies.
+A nominal sentence: your continuing means your agreeing. The longer calqued form opens with `بالمتابعة، فإنك توافق على…`; this version removes that scaffolding while preserving the legal meaning.
 
 ---
 
 ## Naming
 
-Utility screens take bare fusha nouns, one word each:
+Utility screens often take short nouns:
 
 > الإشعارات · التحميلات · القوائم · المقالات · الكتب · البرامج · مكتبتي
 
-The two or three places a person *inhabits* take metaphors from the house and the street:
+Some products use concrete places or objects for prominent destinations:
 
 > الصالة — the home feed. The majlis, the room where people sit and talk.
 > الطابور — the play queue. The queue you physically stand in.
 > نقل العفش — data migration. Moving the furniture.
 
-`مكتبتي` is worth noting: first person possessive as a screen title, not `المكتبة`.
+`مكتبتي` is worth noting: first person possessive as a screen title, not `المكتبة`. Treat this as a product-specific example, not a naming rule.
 
-The naming rules that hold across all 27 of their show names:
+Patterns visible in that product's show names:
 
-1. One or two words. Not one name in the set explains what the thing is.
+1. Compact names are common, but a longer name can be correct when the product meaning needs it.
 2. Concrete objects and places: فنجان · مربّع · برق · السوق · الصفحة الأخيرة · درجة أولى.
 3. Dialect words are legitimate names: سوالف · بُكرة · ذا قال.
 4. Loanwords where the loanword is what people say: بزنس · الكاجولز.
 5. An imperative can be a name: امشِ مع.
-6. The name carries the metaphor, the subtitle carries the person: «فنجان مع عبدالرحمن أبومالح».
-7. No category label inside the name. Never «بودكاست عن ريادة الأعمال».
+6. A name can carry a metaphor while a subtitle carries the person: «فنجان مع عبدالرحمن أبومالح».
+7. Category labels may be unnecessary when the surrounding UI already supplies the category; keep one when removing it would make the name ambiguous.
 
 ---
 
 ## Headline and title rhythm
 
-Measured over 724 shipped episode titles: median **5 to 6 words**, nothing above 13, and **30% open on an interrogative**. Only 7% carry a `؟`, so the interrogative *opener* is the device and the punctuation is optional.
-
-Fusha and dialect interrogatives sit in the same set, unmarked:
+Use interrogatives when the product is genuinely asking a question. Formal and dialect interrogatives can sit in the same product when context supports the switch:
 
 > كيف يتعامل دماغك مع المال
 > هل ستنجو من الذكاء الاصطناعي
@@ -152,7 +150,7 @@ Two more things in that text worth stealing. `تساعدك تعرف` chains two 
 
 ## What the default sounds like
 
-For contrast. All shipped, all from products people use daily.
+For contrast. These are shipped examples from products people use daily.
 
 > تابي هو التطبيق المالي الذي يساعدك على إرسال، إنفاق، توفير، وإدارة المال على طريقتك.
 
